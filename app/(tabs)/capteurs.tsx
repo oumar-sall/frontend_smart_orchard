@@ -8,7 +8,6 @@ const COLORS = {
   green: "#4A7C59",
   textPrimary: "#2C2C2C",
   textSecondary: "#888",
-  labelColor: "#6B6B6B",
 };
 
 function AppHeader() {
@@ -36,7 +35,7 @@ function AppHeader() {
   );
 }
 
-export default function DashboardScreen() {
+export default function CapteursScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
@@ -46,10 +45,10 @@ export default function DashboardScreen() {
         <AppHeader />
         <View style={styles.placeholderCard}>
           <Text style={styles.placeholderText}>
-            Ici se trouvera le Dashboard
+            Ici se trouvera les Capteurs
           </Text>
           <Text style={styles.placeholderSub}>
-            État du sol · Contrôle irrigation · Seuils · Journal d&apos;activité
+            Liste des capteurs · Statut · Valeurs en temps réel
           </Text>
         </View>
       </ScrollView>
@@ -61,8 +60,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F0EB" },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20, paddingBottom: 32 },
-
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -117,8 +114,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#4CAF50",
   },
   onlineText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
-
-  // Placeholder
   placeholderCard: {
     backgroundColor: COLORS.card,
     borderRadius: 16,
