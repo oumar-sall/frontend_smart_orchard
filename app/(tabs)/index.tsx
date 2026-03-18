@@ -21,7 +21,7 @@ const COLORS = {
 
 // URL de l'API de votre backend. A modifier si vous êtes sur appareil physique.
 // Pour iOS via Expo Go (appareil physique sur même WiFi), il faut l'IP locale de l'ordinateur.
-const API_URL = 'http://192.168.1.14:3000';
+const API_URL = 'http://192.168.1.7:3000';
 
 
 function MetricCard({
