@@ -59,7 +59,7 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
       <View style={styles.headerRight}>
         <View style={[styles.badge, styles.weatherBadge]}>
           <Text style={styles.badgeText}>
-            {displayTemp !== null ? `☀️ ${displayTemp}°C` : '☀️ --°C'}
+            {displayTemp !== null ? `☀️ ${Math.round(displayTemp)}°C` : '☀️ --°C'}
           </Text>
         </View>
         <View style={[styles.badge, styles.statusBadge]}>
