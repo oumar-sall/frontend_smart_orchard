@@ -3,40 +3,17 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AppHeader from "../../components/AppHeader";
 
 const COLORS = {
   background: "#F5F0EB",
   card: "#FFFFFF",
   green: "#4A7C59",
-  textPrimary: "#2C2C2C",
-  textSecondary: "#888",
+  textPrimary: "#1A1A1A",
+  textSecondary: "#717171",
   border: "#E8E0D8",
 };
 
-function AppHeader() {
-  return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        <View style={styles.logoBox}>
-          <Text style={styles.logoEmoji}>🌿</Text>
-        </View>
-        <View>
-          <Text style={styles.appName}>Smart Orchard</Text>
-          <Text style={styles.location}>📍 Verger Nord - Bamako</Text>
-        </View>
-      </View>
-      <View style={styles.headerRight}>
-        <View style={styles.tempBadge}>
-          <Text style={styles.tempText}>☀️ 34°C</Text>
-        </View>
-        <View style={styles.onlineBadge}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>En ligne</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
 
 export default function ParametresScreen() {
   return (
@@ -83,61 +60,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20, paddingBottom: 32 },
   
-  // Header
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 28,
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logoBox: {
-    width: 42,
-    height: 42,
-    backgroundColor: "#DFF0E0",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoEmoji: { fontSize: 22 },
-  appName: { fontSize: 18, fontWeight: "700", color: COLORS.textPrimary },
-  location: { fontSize: 12, color: COLORS.textSecondary, marginTop: 1 },
-  headerRight: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 8,
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
-  },
-  tempBadge: {
-    backgroundColor: "#FFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E8E0D8",
-  },
-  tempText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
-  onlineBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E8E0D8",
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#4CAF50",
-  },
-  onlineText: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },
 
   sectionTitle: {
     fontSize: 14,
