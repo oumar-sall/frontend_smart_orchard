@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import * as Location from "expo-location";
 import CircularGauge from "../../components/CircularGauge";
@@ -21,7 +22,7 @@ const COLORS = {
 
 // URL de l'API de votre backend. A modifier si vous êtes sur appareil physique.
 // Pour iOS via Expo Go (appareil physique sur même WiFi), il faut l'IP locale de l'ordinateur.
-const API_URL = 'http://192.168.1.7:3000';
+const API_URL = 'http://192.168.1.15:3000';
 
 
 function MetricCard({
@@ -67,6 +68,8 @@ export default function DashboardScreen() {
   const [dashboardData, setDashboardData] = useState({ temperature: '--', humidity: '--', ph: '--' });
   const [externalTemp, setExternalTemp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isIrrigating, setIsIrrigating] = useState(false);
+  const [irrigationLoading, setIrrigationLoading] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -95,6 +98,23 @@ export default function DashboardScreen() {
       console.error("Erreur météo externe: ", err);
     }
   }
+
+  const handleToggleIrrigation = async () => {
+    setIrrigationLoading(true);
+    const action = isIrrigating ? 'close' : 'open';
+    try {
+      const response = await axios.post(`${API_URL}/readings/irrigation`, { action });
+      if (response.data.success) {
+        setIsIrrigating(!isIrrigating);
+        Alert.alert("Succès", `Vanne ${action === 'open' ? 'ouverte' : 'fermée'}`);
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || "Erreur lors de la commande";
+      Alert.alert("Erreur", errorMsg);
+    } finally {
+      setIrrigationLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadAll = async () => {
@@ -156,6 +176,34 @@ export default function DashboardScreen() {
             </View>
           </View>
         )}
+
+        <View style={styles.irrigationContainer}>
+          <Text style={styles.sectionTitle}>Arrosage manuel</Text>
+          <TouchableOpacity 
+            style={[styles.irrigationCard, isIrrigating && styles.irrigationCardActive]}
+            onPress={handleToggleIrrigation}
+            disabled={irrigationLoading}
+          >
+            <View style={[styles.irrigationIconBox, { backgroundColor: isIrrigating ? '#FFFFFF' : '#4A90E215' }]}>
+              <Ionicons name="water" size={24} color={isIrrigating ? '#4A90E2' : '#4A90E2'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.irrigationTitle, isIrrigating && styles.irrigationTextActive]}>
+                Vanne {isIrrigating ? 'Ouverte' : 'Fermée'}
+              </Text>
+              <Text style={[styles.irrigationSub, isIrrigating && styles.irrigationTextActive]}>
+                {isIrrigating ? 'Appuyez pour fermer' : 'Appuyez pour ouvrir'}
+              </Text>
+            </View>
+            {irrigationLoading ? (
+              <ActivityIndicator color={isIrrigating ? '#FFFFFF' : '#4A90E2'} />
+            ) : (
+              <View style={[styles.toggleBtn, isIrrigating && styles.toggleBtnActive]}>
+                <View style={[styles.toggleCircle, isIrrigating && styles.toggleCircleActive]} />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -216,5 +264,65 @@ const styles = StyleSheet.create({
   gaugeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  irrigationContainer: {
+    marginTop: 24,
+  },
+  irrigationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 12,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  irrigationCardActive: {
+    backgroundColor: '#4A90E2',
+  },
+  irrigationIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  irrigationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  irrigationSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  irrigationTextActive: {
+    color: '#FFFFFF',
+  },
+  toggleBtn: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E0',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  toggleCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  toggleCircleActive: {
+    alignSelf: 'flex-end',
   }
 });
