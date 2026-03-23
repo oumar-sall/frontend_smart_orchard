@@ -19,7 +19,7 @@ const COLORS = {
   inactiveBtn: "#FFFFFF",
 };
 
-const API_URL = 'http://192.168.1.7:3000';
+const API_URL = 'http://192.168.1.15:3000';
 
 function SummaryCard({ title, value, unit, icon, color }: { title: string, value: string | number, unit?: string, icon: string, color: string }) {
   return (
@@ -44,7 +44,7 @@ export default function HistoriqueScreen() {
     try {
       const response = await axios.get(`${API_URL}/readings/history?period=${selectedPeriod}`);
       setHistoryData(response.data);
-      
+
       // Calculate global averages for the period
       const data = response.data;
       if (data.length > 0) {
@@ -83,13 +83,13 @@ export default function HistoriqueScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.filterBtn, selectedPeriod === 'week' && styles.filterBtnActive]}
             onPress={() => setSelectedPeriod('week')}
           >
             <Text style={selectedPeriod === 'week' ? styles.filterBtnTextActive : styles.filterBtnText}>Semaine</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.filterBtn, selectedPeriod === 'month' && styles.filterBtnActive]}
             onPress={() => setSelectedPeriod('month')}
           >
@@ -98,25 +98,25 @@ export default function HistoriqueScreen() {
         </View>
 
         <View style={styles.summaryRow}>
-          <SummaryCard 
-            title="MOY. HUMID." 
-            value={averages.hum} 
-            unit="%" 
-            icon="water-outline" 
-            color="#4A90E2" 
+          <SummaryCard
+            title="MOY. HUMID."
+            value={averages.hum}
+            unit="%"
+            icon="water-outline"
+            color="#4A90E2"
           />
-          <SummaryCard 
-            title="MOY. PH" 
-            value={averages.ph} 
-            icon="flask-outline" 
-            color="#9B51E0" 
+          <SummaryCard
+            title="MOY. PH"
+            value={averages.ph}
+            icon="flask-outline"
+            color="#9B51E0"
           />
-          <SummaryCard 
-            title="MOY. TEMP." 
-            value={averages.temp} 
-            unit="°" 
-            icon="thermometer-outline" 
-            color="#F2994A" 
+          <SummaryCard
+            title="MOY. TEMP."
+            value={averages.temp}
+            unit="°"
+            icon="thermometer-outline"
+            color="#F2994A"
           />
         </View>
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F0EB" },
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 32 },
-  
+
   titleRow: {
     marginBottom: 16,
   },

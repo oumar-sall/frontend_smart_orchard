@@ -8,39 +8,57 @@ const COLORS = {
   textSecondary: "#717171",
 };
 
+const API_URL = 'http://192.168.1.15:3000';
+
 interface AppHeaderProps {
   externalTemp?: number | null;
 }
 
 export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
   const [internalTemp, setInternalTemp] = useState<number | null>(null);
+  const [isOnline, setIsOnline] = useState(false);
+
+  const fetchStatus = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/readings/status`);
+      setIsOnline(response.data.online);
+    } catch (error) {
+      console.warn("Erreur status Header:", error);
+      setIsOnline(false);
+    }
+  };
 
   useEffect(() => {
-    // Si une température externe est fournie (via le dashboard par exemple), on l'utilise.
-    // Sinon, on la récupère nous-mêmes pour les autres onglets.
+    // Statut en ligne
+    fetchStatus();
+    const statusInterval = setInterval(fetchStatus, 30000); // 30s
+
+    // Météo
     if (externalTemp !== null) {
       setInternalTemp(externalTemp);
-      return;
+    } else {
+      const fetchWeather = async () => {
+        try {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') return;
+
+          let location = await Location.getCurrentPositionAsync({});
+          const weatherRes = await axios.get(
+            `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
+          );
+          if (weatherRes.data && weatherRes.data.current_weather) {
+            setInternalTemp(weatherRes.data.current_weather.temperature);
+          }
+        } catch (err) {
+          console.warn("Erreur météo Header:", err);
+        }
+      };
+      fetchWeather();
     }
 
-    const fetchWeather = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-
-        let location = await Location.getCurrentPositionAsync({});
-        const weatherRes = await axios.get(
-          `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
-        );
-        if (weatherRes.data && weatherRes.data.current_weather) {
-          setInternalTemp(weatherRes.data.current_weather.temperature);
-        }
-      } catch (err) {
-        console.warn("Erreur météo Header:", err);
-      }
+    return () => {
+      clearInterval(statusInterval);
     };
-
-    fetchWeather();
   }, [externalTemp]);
 
   const displayTemp = externalTemp !== null ? externalTemp : internalTemp;
@@ -62,9 +80,9 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
             {displayTemp !== null ? `☀️ ${Math.round(displayTemp)}°C` : '☀️ --°C'}
           </Text>
         </View>
-        <View style={[styles.badge, styles.statusBadge]}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.badgeText}>Actif</Text>
+        <View style={[styles.badge, styles.statusBadge, { borderColor: isOnline ? "#C8E6C9" : "#FFCDD2" }]}>
+          <View style={[styles.onlineDot, { backgroundColor: isOnline ? "#4CAF50" : "#F44336" }]} />
+          <Text style={styles.badgeText}>{isOnline ? "En ligne" : "Hors ligne"}</Text>
         </View>
       </View>
     </View>
