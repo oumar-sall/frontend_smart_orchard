@@ -20,7 +20,7 @@ const COLORS = {
   labelColor: "#555555",
 };
 
-const API_URL = 'http://192.168.1.15:3000';
+const API_URL = 'http://192.168.1.8:3000';
 
 function MetricCard({
   title,
@@ -53,13 +53,13 @@ function MetricCard({
   );
 }
 
-function IrrigationCard({ 
-  actuator, 
-  onToggle, 
-  loading 
-}: { 
-  actuator: any; 
-  onToggle: (id: string, currentAction: string) => void; 
+function IrrigationCard({
+  actuator,
+  onToggle,
+  loading
+}: {
+  actuator: any;
+  onToggle: (id: string, currentAction: string) => void;
   loading: boolean;
 }) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -101,10 +101,10 @@ function IrrigationCard({
     >
       <View style={styles.irrigationMainRow}>
         <View style={styles.irrigationIconBox}>
-          <Ionicons 
-            name={actuator.label.toLowerCase().includes('vanne') ? "water-outline" : "construct-outline"} 
-            size={24} 
-            color="#4A7C59" 
+          <Ionicons
+            name={actuator.label.toLowerCase().includes('vanne') ? "water-outline" : "construct-outline"}
+            size={24}
+            color="#4A7C59"
           />
         </View>
         <View style={styles.irrigationTextContainer}>
@@ -118,10 +118,10 @@ function IrrigationCard({
         ) : (
           <View style={[styles.toggleTrack, isIrrigatingElement && styles.toggleTrackActive]}>
             <View style={[styles.toggleThumb, isIrrigatingElement && styles.toggleThumbActive]}>
-              <Ionicons 
-                name={isIrrigatingElement ? "power" : "power-outline"} 
-                size={14} 
-                color={isIrrigatingElement ? "#4A7C59" : "#ADB5BD"} 
+              <Ionicons
+                name={isIrrigatingElement ? "power" : "power-outline"}
+                size={14}
+                color={isIrrigatingElement ? "#4A7C59" : "#ADB5BD"}
               />
             </View>
           </View>
@@ -136,7 +136,7 @@ function IrrigationCard({
           <Text style={styles.timerUnit}>restantes</Text>
         </View>
       )}
-      
+
       <View style={styles.decoCircle1} />
       <View style={styles.decoCircle2} />
     </TouchableOpacity>
@@ -144,9 +144,9 @@ function IrrigationCard({
 }
 
 export default function DashboardScreen() {
-  const [dashboardData, setDashboardData] = useState<any>({ 
-    temperature: '--', 
-    humidity: '--', 
+  const [dashboardData, setDashboardData] = useState<any>({
+    temperature: '--',
+    humidity: '--',
     ph: '--',
     actuators: []
   });
@@ -181,7 +181,7 @@ export default function DashboardScreen() {
   const handleToggleIrrigation = async (componentId: string, action: string) => {
     setIrrigationLoadingId(componentId);
     try {
-      const response = await axios.post(`${API_URL}/readings/irrigation`, { 
+      const response = await axios.post(`${API_URL}/readings/irrigation`, {
         action,
         componentId
       });
@@ -206,7 +206,7 @@ export default function DashboardScreen() {
     }
     loadAll();
 
-    const interval = setInterval(fetchDashboardData, 10000); 
+    const interval = setInterval(fetchDashboardData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -234,11 +234,11 @@ export default function DashboardScreen() {
         <View style={styles.irrigationContainer}>
           <Text style={styles.sectionTitle}>Contrôle des équipements</Text>
           {dashboardData.actuators.map((act: any) => (
-            <IrrigationCard 
-              key={act.id} 
-              actuator={act} 
-              onToggle={handleToggleIrrigation} 
-              loading={irrigationLoadingId === act.id} 
+            <IrrigationCard
+              key={act.id}
+              actuator={act}
+              onToggle={handleToggleIrrigation}
+              loading={irrigationLoadingId === act.id}
             />
           ))}
           {dashboardData.actuators.length === 0 && !loading && (

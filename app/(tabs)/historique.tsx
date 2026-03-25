@@ -19,7 +19,7 @@ const COLORS = {
   inactiveBtn: "#FFFFFF",
 };
 
-const API_URL = 'http://192.168.1.15:3000';
+const API_URL = 'http://192.168.1.8:3000';
 
 function SummaryCard({ title, value, unit, icon, color }: { title: string, value: string | number, unit?: string, icon: string, color: string }) {
   return (
