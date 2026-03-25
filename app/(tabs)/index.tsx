@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import * as Location from "expo-location";
 import CircularGauge from "../../components/CircularGauge";
@@ -143,11 +144,46 @@ function IrrigationCard({
   );
 }
 
+const getSensorColor = (value: number, unit: string, min: number, max: number) => {
+  if (isNaN(value)) return COLORS.green; // Default
+  
+  const minColor = { r: 74, g: 144, b: 226 };  // Blue (#4A90E2)
+  const maxColor = { r: 255, g: 59, b: 48 };   // Red (#FF3B30)
+
+  const interpolate = (ratio: number) => {
+    let constrained = Math.max(0, Math.min(1, ratio));
+    const r = Math.round(minColor.r + (maxColor.r - minColor.r) * constrained);
+    const g = Math.round(minColor.g + (maxColor.g - minColor.g) * constrained);
+    const b = Math.round(minColor.b + (maxColor.b - minColor.b) * constrained);
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  if (unit === '°C') {
+    // Low: Blue, High: Red
+    const ratio = (max - min) === 0 ? 0 : (value - min) / (max - min);
+    return interpolate(ratio);
+  } else if (unit === '%') {
+    // Low: Red, High: Blue
+    const ratio = (max - min) === 0 ? 0 : (value - min) / (max - min);
+    return interpolate(1 - ratio);
+  } else if (unit === 'pH') {
+    // 7 is Blue (0), 0 or 14 is Red (1)
+    const ratio = Math.abs(value - 7) / 7;
+    return interpolate(ratio);
+  }
+  return COLORS.green;
+};
+
+const getSensorLabel = (label: string, unit: string) => {
+  if (unit === '°C') return "Température";
+  if (unit === '%') return "Humidité";
+  if (unit === 'pH') return "pH";
+  return label || "Capteur";
+};
+
 export default function DashboardScreen() {
   const [dashboardData, setDashboardData] = useState<any>({
-    temperature: '--',
-    humidity: '--',
-    ph: '--',
+    sensors: [],
     actuators: []
   });
   const [externalTemp, setExternalTemp] = useState(null);
@@ -197,6 +233,12 @@ export default function DashboardScreen() {
     }
   };
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
+
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -223,17 +265,26 @@ export default function DashboardScreen() {
           <ActivityIndicator size="large" color={COLORS.green} style={{ marginTop: 50 }} />
         ) : (
           <View style={styles.metricsGrid}>
-            <View style={styles.gridRow}>
-              <MetricCard title="Humidité" value={dashboardData.humidity} unit="%" color="#4A90E2" />
-              <MetricCard title="PH" value={dashboardData.ph === "ici sera mis la valeur lue du capteur de ph" ? "--" : dashboardData.ph} unit="pH" color="#9B51E0" max={14} />
-              <MetricCard title="Température" value={dashboardData.temperature} unit="°C" color="#F2994A" max={50} />
-            </View>
+            {dashboardData.sensors && dashboardData.sensors.map((sensor: any) => (
+              <MetricCard 
+                key={sensor.id}
+                title={getSensorLabel(sensor.title, sensor.unit)} 
+                value={sensor.value} 
+                unit={sensor.unit} 
+                color={getSensorColor(sensor.value, sensor.unit, sensor.min, sensor.max)} 
+                min={sensor.min}
+                max={sensor.max}
+              />
+            ))}
+            {(!dashboardData.sensors || dashboardData.sensors.length === 0) && (
+              <Text style={{ marginTop: 10, color: COLORS.textSecondary, fontStyle: 'italic' }}>Aucune donnée de capteur trouvée.</Text>
+            )}
           </View>
         )}
 
         <View style={styles.irrigationContainer}>
           <Text style={styles.sectionTitle}>Contrôle des équipements</Text>
-          {dashboardData.actuators.map((act: any) => (
+          {dashboardData.actuators && dashboardData.actuators.map((act: any) => (
             <IrrigationCard
               key={act.id}
               actuator={act}
@@ -241,7 +292,7 @@ export default function DashboardScreen() {
               loading={irrigationLoadingId === act.id}
             />
           ))}
-          {dashboardData.actuators.length === 0 && !loading && (
+          {(!dashboardData.actuators || dashboardData.actuators.length === 0) && !loading && (
             <Text style={{ marginTop: 20, color: COLORS.textSecondary, fontStyle: 'italic' }}>Aucun équipement configuré.</Text>
           )}
         </View>
@@ -256,8 +307,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 32 },
   dashboardTitleContainer: { marginBottom: 16 },
   sectionTitle: { fontSize: 20, fontWeight: "700", color: COLORS.textPrimary },
-  metricsGrid: { flexDirection: 'column', gap: 16 },
-  gridRow: { flexDirection: 'row', gap: 16, justifyContent: 'space-between' },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   metricCard: {
     backgroundColor: COLORS.card,
     borderRadius: 16,

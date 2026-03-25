@@ -61,11 +61,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="capteurs"
+        name="composants"
         options={{
-          title: "Capteurs",
+          title: "Composants",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="radio-outline" color={color} focused={focused} />
+            <TabIcon name="hardware-chip-outline" color={color} focused={focused} />
           ),
         }}
       />
