@@ -20,6 +20,7 @@ const COLORS = {
 };
 
 const API_URL = 'http://192.168.1.8:3000';
+const ITEMS_PER_PAGE = 7;
 
 function SummaryCard({ title, value, unit, icon, color }: { title: string, value: string | number, unit?: string, icon: string, color: string }) {
   return (
@@ -38,12 +39,14 @@ export default function HistoriqueScreen() {
   const [loading, setLoading] = useState(true);
   const [averages, setAverages] = useState({ temp: '--', hum: '--', ph: '--' });
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>('week');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/readings/history?period=${selectedPeriod}`);
       setHistoryData(response.data);
+      setCurrentPage(1); // Retour en page 1 à chaque refresh de période
 
       // Calculate global averages for the period
       const data = response.data;
@@ -129,17 +132,44 @@ export default function HistoriqueScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.green} style={{ marginTop: 40 }} />
         ) : (
-          historyData.map((day, idx) => (
-            <HistoryCard
-              key={day.date}
-              displayDate={day.displayDate}
-              avgHumidity={day.avgHumidity}
-              avgPh={day.avgPh}
-              avgTemperature={day.avgTemperature}
-              wateringCount={day.wateringCount}
-              humidityTrend={day.humidityTrend}
-            />
-          ))
+          <>
+            {historyData
+              .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+              .map((day) => (
+                <HistoryCard
+                  key={day.date}
+                  displayDate={day.displayDate}
+                  avgHumidity={day.avgHumidity}
+                  avgPh={day.avgPh}
+                  avgTemperature={day.avgTemperature}
+                  wateringCount={day.wateringCount}
+                  humidityTrend={day.humidityTrend}
+                />
+              ))
+            }
+            
+            {historyData.length > ITEMS_PER_PAGE && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity
+                  style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                  disabled={currentPage === 1}
+                  onPress={() => setCurrentPage(prev => prev - 1)}
+                >
+                  <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? COLORS.textSecondary : COLORS.textPrimary} />
+                </TouchableOpacity>
+
+                <Text style={styles.pageText}>Page {currentPage} / {Math.ceil(historyData.length / ITEMS_PER_PAGE)}</Text>
+
+                <TouchableOpacity
+                  style={[styles.pageButton, currentPage === Math.ceil(historyData.length / ITEMS_PER_PAGE) && styles.pageButtonDisabled]}
+                  disabled={currentPage === Math.ceil(historyData.length / ITEMS_PER_PAGE)}
+                  onPress={() => setCurrentPage(prev => prev + 1)}
+                >
+                  <Ionicons name="chevron-forward" size={20} color={currentPage === Math.ceil(historyData.length / ITEMS_PER_PAGE) ? COLORS.textSecondary : COLORS.textPrimary} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -238,5 +268,38 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#8E8E93",
     letterSpacing: 0.5,
+  },
+  
+  // Pagination
+  paginationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    marginBottom: 40,
+    gap: 20,
+  },
+  pageButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.card,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pageButtonDisabled: {
+    backgroundColor: "#F0EAE4",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  pageText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
   },
 });

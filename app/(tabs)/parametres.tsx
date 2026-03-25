@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, PanResponder, Swi
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import AppHeader from "../../components/AppHeader";
 
 const COLORS = {
@@ -106,7 +107,6 @@ export default function ParametresScreen() {
     auto_mode: false,
   });
   const [availableSensors, setAvailableSensors] = React.useState<any[]>([]);
-  const [isOnline, setIsOnline] = React.useState<boolean>(false);
   const [simulateStatus, setSimulateStatus] = React.useState<string | null>(null);
 
   // Helper pour mettre à jour un champ localement ET envoyer au backend
@@ -163,35 +163,48 @@ export default function ParametresScreen() {
   }, []);
 
   const fetchControllerStatus = React.useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_URL}/readings/status`);
-      setIsOnline(res.data.online ?? false);
-    } catch {
-      setIsOnline(false);
-    }
+    // On garde la fonction pour le moment au cas où on voudrait rafraichir d'autres choses, 
+    // mais le badge est géré par AppHeader.
   }, []);
 
-  React.useEffect(() => {
-    const init = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/readings/actuators`);
-        setActuators(res.data);
-        if (res.data.length > 0) {
-          setSelectedPin(res.data[0].pin_number);
-          fetchSettings(res.data[0].pin_number);
-        }
-        fetchAvailableSensors();
-        fetchControllerStatus();
-      } catch (error) {
-        console.error("Erreur fetch actuators:", error);
-      }
-    };
-    init();
+  useFocusEffect(
+    React.useCallback(() => {
+      const refresh = async () => {
+        try {
+          // Re-fetch la liste des actionneurs au focus
+          const res = await axios.get(`${API_URL}/readings/actuators`);
+          setActuators(res.data);
+          
+          // Déterminer quelle pin charger
+          let pinToLoad = selectedPin;
+          
+          // Si rien n'est sélectionné ou si la sélection n'existe plus dans la liste brute
+          const exists = res.data.find((a: any) => a.pin_number === selectedPin);
+          if (!exists && res.data.length > 0) {
+            pinToLoad = res.data[0].pin_number;
+            setSelectedPin(pinToLoad);
+          }
 
-    // Refresh statut boîtier toutes les 15s
-    const interval = setInterval(fetchControllerStatus, 15000);
+          if (pinToLoad && pinToLoad !== 'OUT 0') {
+            fetchSettings(pinToLoad);
+          }
+          
+          fetchControllerStatus();
+          fetchAvailableSensors();
+        } catch (error) {
+          console.error("Erreur refresh focus:", error);
+        }
+      };
+      
+      refresh();
+    }, [selectedPin, fetchControllerStatus, fetchSettings, fetchAvailableSensors])
+  );
+
+  React.useEffect(() => {
+    // Statut boîtier toutes les 10s quand on est sur la page
+    const interval = setInterval(fetchControllerStatus, 10000);
     return () => clearInterval(interval);
-  }, [fetchSettings, fetchAvailableSensors, fetchControllerStatus]);
+  }, [fetchControllerStatus]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -210,12 +223,6 @@ export default function ParametresScreen() {
               <Text style={styles.controllerName}>Galileosky Verger</Text>
               <Text style={styles.controllerSub}>Boîtier IoT • RS485 / Modbus</Text>
             </View>
-          </View>
-          <View style={[styles.statusBadge, isOnline ? styles.statusOnline : styles.statusOffline]}>
-            <View style={[styles.statusDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
-            <Text style={[styles.statusText, isOnline ? styles.statusTextOnline : styles.statusTextOffline]}>
-              {isOnline ? 'En ligne' : 'Hors ligne'}
-            </Text>
           </View>
         </View>
 
@@ -290,7 +297,6 @@ export default function ParametresScreen() {
             min={5}
             max={60}
             step={1}
-            disabled={!settings.auto_mode}
             onValueChange={(val: number) => updateSettingDebounced('irrigation_duration', val * 60, selectedPin)}
             formatValue={(val: number) => Math.round(val)}
           />
@@ -369,8 +375,8 @@ export default function ParametresScreen() {
             onPress={async () => {
               try {
                 setSimulateStatus('⏳ Simulation en cours...');
-                // On utilise le capteur sélectionné pour CETTE vanne, sinon fallback sur modbus1
-                const targetSensorPin = availableSensors.find(s => s.id === settings.sensor_id)?.pin_number || 'modbus1';
+                // On utilise le capteur sélectionné pour CETTE vanne, sinon fallback sur 485 B
+                const targetSensorPin = availableSensors.find(s => s.id === settings.sensor_id)?.pin_number || '485 B';
                 const res = await axios.post(`${API_URL}/readings/simulate`, { humidity: 10, pin: targetSensorPin });
                 setSimulateStatus(`✅ ${res.data.message}`);
               } catch (e: any) {

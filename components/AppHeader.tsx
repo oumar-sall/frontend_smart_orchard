@@ -8,7 +8,7 @@ const COLORS = {
   textSecondary: "#717171",
 };
 
-const API_URL = 'http://192.168.1.15:3000';
+const API_URL = 'http://192.168.1.8:3000';
 
 interface AppHeaderProps {
   externalTemp?: number | null;
