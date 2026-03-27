@@ -4,7 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import * as SecureStore from 'expo-secure-store';
+import { useRouter } from "expo-router";
 import AppHeader from "../../components/AppHeader";
+import { API_URL } from "@/constants/Api";
 
 const COLORS = {
   background: "#F5F0EB",
@@ -14,8 +17,6 @@ const COLORS = {
   textSecondary: "#717171",
   border: "#E8E0D8",
 };
-
-const API_URL = 'http://192.168.1.8:3000';
 
 // --- COMPOSANT SLIDER OPTIMISÉ ---
 const SettingSlider = React.memo(({
@@ -107,7 +108,6 @@ export default function ParametresScreen() {
     auto_mode: false,
   });
   const [availableSensors, setAvailableSensors] = React.useState<any[]>([]);
-  const [simulateStatus, setSimulateStatus] = React.useState<string | null>(null);
 
   // Helper pour mettre à jour un champ localement ET envoyer au backend
   const updateSetting = React.useCallback((key: string, val: any, pin: string) => {
@@ -129,7 +129,12 @@ export default function ParametresScreen() {
 
   const sendToBackend = async (key: string, val: any, pin: string) => {
     try {
-      await axios.put(`${API_URL}/readings/settings`, { [key]: val, pin });
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      await axios.put(`${API_URL}/readings/settings`, {
+        [key]: val,
+        pin,
+        controller_id: controllerId
+      });
     } catch (error) {
       console.error("Erreur sync settings:", error);
     }
@@ -137,7 +142,10 @@ export default function ParametresScreen() {
 
   const fetchSettings = React.useCallback(async (pin: string) => {
     try {
-      const response = await axios.get(`${API_URL}/readings/settings`, { params: { pin } });
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const response = await axios.get(`${API_URL}/readings/settings`, {
+        params: { pin, controller_id: controllerId }
+      });
       if (response.data) {
         setSettings({
           // Utilisation de ?? pour ne pas écraser les valeurs 0 légitimes
@@ -155,7 +163,10 @@ export default function ParametresScreen() {
 
   const fetchAvailableSensors = React.useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/readings/sensors`);
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const response = await axios.get(`${API_URL}/readings/sensors`, {
+        params: { controller_id: controllerId }
+      });
       setAvailableSensors(response.data || []);
     } catch (error) {
       console.error("Erreur fetch sensors: ", error);
@@ -167,17 +178,29 @@ export default function ParametresScreen() {
     // mais le badge est géré par AppHeader.
   }, []);
 
+  const [activeController, setActiveController] = React.useState({ id: '', name: 'Galileosky Verger' });
+  const router = useRouter();
+
   useFocusEffect(
     React.useCallback(() => {
       const refresh = async () => {
         try {
+          // Charger le contrôleur actif depuis le stockage
+          const storedId = await SecureStore.getItemAsync('selectedControllerId');
+          const storedName = await SecureStore.getItemAsync('selectedControllerName');
+          if (storedId) {
+            setActiveController({ id: storedId, name: storedName || 'Contrôleur sans nom' });
+          }
+
           // Re-fetch la liste des actionneurs au focus
-          const res = await axios.get(`${API_URL}/readings/actuators`);
+          const res = await axios.get(`${API_URL}/readings/actuators`, {
+            params: { controller_id: storedId }
+          });
           setActuators(res.data);
-          
+
           // Déterminer quelle pin charger
           let pinToLoad = selectedPin;
-          
+
           // Si rien n'est sélectionné ou si la sélection n'existe plus dans la liste brute
           const exists = res.data.find((a: any) => a.pin_number === selectedPin);
           if (!exists && res.data.length > 0) {
@@ -188,14 +211,14 @@ export default function ParametresScreen() {
           if (pinToLoad && pinToLoad !== 'OUT 0') {
             fetchSettings(pinToLoad);
           }
-          
+
           fetchControllerStatus();
           fetchAvailableSensors();
         } catch (error) {
           console.error("Erreur refresh focus:", error);
         }
       };
-      
+
       refresh();
     }, [selectedPin, fetchControllerStatus, fetchSettings, fetchAvailableSensors])
   );
@@ -214,17 +237,21 @@ export default function ParametresScreen() {
         <Text style={styles.pageTitle}>PARAMÈTRES</Text>
 
         {/* --- CARTE BOÎTIER --- */}
-        <View style={styles.controllerCard}>
+        <TouchableOpacity
+          style={styles.controllerCard}
+          onPress={() => activeController.id && router.push(`/controllers/${activeController.id}` as any)}
+        >
           <View style={styles.controllerInfo}>
             <View style={styles.controllerIconBox}>
               <Ionicons name="hardware-chip-outline" size={24} color={COLORS.green} />
             </View>
             <View>
-              <Text style={styles.controllerName}>Galileosky Verger</Text>
-              <Text style={styles.controllerSub}>Boîtier IoT • RS485 / Modbus</Text>
+              <Text style={styles.controllerName}>{activeController.name}</Text>
+              <Text style={styles.controllerSub}>Boîtier de contrôle</Text>
             </View>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
 
         {/* --- SÉLECTEUR D'ACTIONNEUR --- */}
         <View style={styles.settingsSection}>
@@ -368,27 +395,23 @@ export default function ParametresScreen() {
             step={5}
             onValueChange={(val: number) => updateSettingDebounced('reporting_interval', val, selectedPin)}
           />
+        </View>
 
-          {/* 🧪 BOUTON SIMULATION TEMPORAIRE */}
+        {/* --- SYSTÈME --- */}
+        <View style={styles.systemSection}>
+          <Text style={styles.sectionTitle}>SYSTÈME</Text>
           <TouchableOpacity
-            style={styles.simButton}
-            onPress={async () => {
-              try {
-                setSimulateStatus('⏳ Simulation en cours...');
-                // On utilise le capteur sélectionné pour CETTE vanne, sinon fallback sur 485 B
-                const targetSensorPin = availableSensors.find(s => s.id === settings.sensor_id)?.pin_number || '485 B';
-                const res = await axios.post(`${API_URL}/readings/simulate`, { humidity: 10, pin: targetSensorPin });
-                setSimulateStatus(`✅ ${res.data.message}`);
-              } catch (e: any) {
-                setSimulateStatus(`❌ ${e.response?.data?.error || e.message}`);
-              }
-              setTimeout(() => setSimulateStatus(null), 4000);
-            }}
+            style={styles.manageBtn}
+            onPress={() => router.push("/controllers" as any)}
           >
-            <Ionicons name="flask-outline" size={16} color="#6B7280" />
-            <Text style={styles.simButtonText}>Simuler humidité basse (10%)</Text>
+            <View style={styles.manageBtnContent}>
+              <View style={styles.manageIconBox}>
+                <Ionicons name="swap-horizontal-outline" size={20} color={COLORS.green} />
+              </View>
+              <Text style={styles.manageBtnText}>Gérer mes boîtiers</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          {simulateStatus && <Text style={styles.simStatus}>{simulateStatus}</Text>}
         </View>
 
         <View style={styles.infoCard}>
@@ -608,9 +631,41 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#E5E7EB', marginTop: 16,
     justifyContent: 'center'
   },
-  simButtonText: { fontSize: 13, fontWeight: '600', color: '#4B5563' },
-  simStatus: {
-    marginTop: 8, fontSize: 12, fontWeight: '600',
-    color: COLORS.green, textAlign: 'center'
-  }
+  systemSection: {
+    marginTop: 8,
+    marginBottom: 32,
+  },
+  manageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  manageBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  manageIconBox: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#EFF6F1",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  manageBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
 });

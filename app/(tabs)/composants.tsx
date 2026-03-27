@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import * as SecureStore from 'expo-secure-store';
 import AppHeader from "../../components/AppHeader";
+import { API_URL } from "@/constants/Api";
 
 const COLORS = {
   background: "#F5F0EB",
@@ -15,8 +17,6 @@ const COLORS = {
   border: "#E8E0D8",
   danger: "#FF3B30",
 };
-
-const API_URL = 'http://192.168.1.8:3000';
 const ITEMS_PER_PAGE = 7;
 
 const SENSOR_PINS = [
@@ -75,9 +75,12 @@ export default function ComposantsScreen() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const params = { controller_id: controllerId };
+
       const [resSensors, resActuators] = await Promise.all([
-        axios.get(`${API_URL}/readings/sensors`),
-        axios.get(`${API_URL}/readings/actuators`)
+        axios.get(`${API_URL}/readings/sensors`, { params }),
+        axios.get(`${API_URL}/readings/actuators`, { params })
       ]);
       setSensors(resSensors.data || []);
       setActuators(resActuators.data || []);
@@ -99,13 +102,16 @@ export default function ComposantsScreen() {
     }
 
     try {
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      
       await axios.post(`${API_URL}/readings/components`, {
         type: activeTab === 'capteurs' ? 'sensor' : 'actuator',
         label: newLabel,
         pin_number: newPin,
         unit: newUnit || undefined,
         min_value: newMinValue ? parseFloat(newMinValue) : undefined,
-        max_value: newMaxValue ? parseFloat(newMaxValue) : undefined
+        max_value: newMaxValue ? parseFloat(newMaxValue) : undefined,
+        controller_id: controllerId
       });
       setModalVisible(false);
       setNewLabel("");

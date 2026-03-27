@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import * as Location from "expo-location";
 import axios from "axios";
+import * as SecureStore from 'expo-secure-store';
+import { API_URL } from "@/constants/Api";
 
 const COLORS = {
   textPrimary: "#1A1A1A",
   textSecondary: "#717171",
 };
-
-const API_URL = 'http://192.168.1.8:3000';
 
 interface AppHeaderProps {
   externalTemp?: number | null;
@@ -20,7 +20,10 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get(`${API_URL}/readings/status`);
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const response = await axios.get(`${API_URL}/readings/status`, {
+        params: { controller_id: controllerId }
+      });
       setIsOnline(response.data.online);
     } catch (error) {
       console.warn("Erreur status Header:", error);
