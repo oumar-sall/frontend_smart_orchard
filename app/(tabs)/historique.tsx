@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import * as SecureStore from 'expo-secure-store';
 import AppHeader from "../../components/AppHeader";
 import HistoryCard from "../../components/HistoryCard";
+import { API_URL } from "@/constants/Api";
 
 const { width } = Dimensions.get('window');
 const SUMMARY_CARD_WIDTH = (width - 56) / 3;
@@ -18,8 +20,6 @@ const COLORS = {
   activeGreen: "#4A7C59",
   inactiveBtn: "#FFFFFF",
 };
-
-const API_URL = 'http://192.168.1.8:3000';
 const ITEMS_PER_PAGE = 7;
 
 function SummaryCard({ title, value, unit, icon, color }: { title: string, value: string | number, unit?: string, icon: string, color: string }) {
@@ -44,7 +44,13 @@ export default function HistoriqueScreen() {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/readings/history?period=${selectedPeriod}`);
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const response = await axios.get(`${API_URL}/readings/history`, {
+        params: { 
+          period: selectedPeriod,
+          controller_id: controllerId
+        }
+      });
       setHistoryData(response.data);
       setCurrentPage(1); // Retour en page 1 à chaque refresh de période
 

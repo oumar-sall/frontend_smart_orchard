@@ -5,8 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import * as Location from "expo-location";
+import * as SecureStore from 'expo-secure-store';
+import { useRouter } from "expo-router";
 import CircularGauge from "../../components/CircularGauge";
 import AppHeader from "../../components/AppHeader";
+import { API_URL } from "@/constants/Api";
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 72) / 3;
@@ -20,8 +23,6 @@ const COLORS = {
   textSecondary: "#717171",
   labelColor: "#555555",
 };
-
-const API_URL = 'http://192.168.1.8:3000';
 
 function MetricCard({
   title,
@@ -38,7 +39,7 @@ function MetricCard({
     <View style={styles.metricCard}>
       <View style={styles.gaugeContainer}>
         <CircularGauge
-          value={isAvailable ? numValue : 0}
+          value={isAvailable ? numValue : NaN}
           min={min}
           max={max}
           color={color}
@@ -182,6 +183,7 @@ const getSensorLabel = (label: string, unit: string) => {
 };
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const [dashboardData, setDashboardData] = useState<any>({
     sensors: [],
     actuators: []
@@ -192,7 +194,12 @@ export default function DashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await axios.get(`${API_URL}/readings/dashboard`);
+      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      if (!controllerId) return;
+
+      const response = await axios.get(`${API_URL}/readings/dashboard`, {
+        params: { controller_id: controllerId }
+      });
       setDashboardData(response.data);
     } catch (error) {
       console.error("Erreur récupération données dashboard: ", error);
@@ -235,15 +242,23 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchDashboardData();
-    }, [])
+      const checkAndFetch = async () => {
+        const id = await SecureStore.getItemAsync('selectedControllerId');
+        if (!id) {
+          router.replace("/controllers" as any);
+        } else {
+          fetchDashboardData();
+        }
+      };
+      checkAndFetch();
+    }, [router])
   );
 
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      await fetchDashboardData();
       await fetchExternalTemp();
+      // fetchDashboardData est déjà appelé par useFocusEffect
       setLoading(false);
     }
     loadAll();
