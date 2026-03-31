@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import * as Location from "expo-location";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import { useRouter } from "expo-router";
 import CircularGauge from "../../components/CircularGauge";
 import AppHeader from "../../components/AppHeader";
@@ -194,7 +194,7 @@ export default function DashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId) return;
 
       const response = await axios.get(`${API_URL}/readings/dashboard`, {
@@ -243,8 +243,8 @@ export default function DashboardScreen() {
   useFocusEffect(
     React.useCallback(() => {
       const checkAndFetch = async () => {
-        const id = await SecureStore.getItemAsync('selectedControllerId');
-        if (!id) {
+        const savedId = await storage.getItem('selectedControllerId');
+        if (!savedId) {
           router.replace("/controllers" as any);
         } else {
           fetchDashboardData();
@@ -320,33 +320,47 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F0EB" },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20, paddingBottom: 32 },
-  dashboardTitleContainer: { marginBottom: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: "700", color: COLORS.textPrimary },
+  dashboardTitleContainer: { marginBottom: 20 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#8E8E93",
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 16,
+  },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   metricCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 8,
-    paddingTop: 12,
+    borderRadius: 24,
+    padding: 12,
+    paddingTop: 16,
     width: CARD_WIDTH,
     alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
   metricHeader: { flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: 8 },
-  metricTitle: { fontSize: 10, fontWeight: '700', color: COLORS.labelColor, textAlign: 'center' },
+  metricTitle: { fontSize: 10, fontWeight: '700', color: COLORS.labelColor, textAlign: 'center', textTransform: 'uppercase' },
   gaugeContainer: { alignItems: 'center', justifyContent: 'center' },
-  irrigationContainer: { marginTop: 24 },
+  irrigationContainer: { marginTop: 32 },
   irrigationCard: {
-    backgroundColor: '#F3F5F0',
-    borderRadius: 28,
-    padding: 24,
-    marginTop: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    padding: 20,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#E8EBE3',
+    borderColor: 'rgba(0,0,0,0.02)',
     overflow: 'hidden',
     position: 'relative',
   },
@@ -355,26 +369,21 @@ const styles = StyleSheet.create({
   irrigationIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    backgroundColor: '#F7F8F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   irrigationTextContainer: { flex: 1 },
-  irrigationTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  irrigationSub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
-  toggleTrack: { width: 64, height: 36, borderRadius: 18, backgroundColor: '#E9ECEF', padding: 4 },
+  irrigationTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
+  irrigationSub: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
+  toggleTrack: { width: 60, height: 32, borderRadius: 16, backgroundColor: '#F0EAE4', padding: 3 },
   toggleTrackActive: { backgroundColor: '#4A7C59' },
   toggleThumb: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -385,10 +394,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   toggleThumbActive: { alignSelf: 'flex-end' },
-  timerSection: { marginTop: 30, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 12, zIndex: 2 },
-  timerDisplay: { backgroundColor: '#E9ECEF', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 20, minWidth: 160, alignItems: 'center' },
-  timerValue: { fontSize: 36, fontWeight: '800', color: '#4A7C59', letterSpacing: 2 },
-  timerUnit: { fontSize: 16, color: COLORS.textSecondary, fontWeight: '600' },
-  decoCircle1: { position: 'absolute', right: -20, bottom: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(74, 124, 89, 0.03)', zIndex: 1 },
-  decoCircle2: { position: 'absolute', right: 20, bottom: -60, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(74, 124, 89, 0.03)', borderWidth: 1, borderColor: 'rgba(74, 124, 89, 0.05)', zIndex: 1 }
+  timerSection: { marginTop: 24, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 12, zIndex: 2 },
+  timerDisplay: { backgroundColor: '#F0EAE4', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16, minWidth: 140, alignItems: 'center' },
+  timerValue: { fontSize: 32, fontWeight: '800', color: '#4A7C59', letterSpacing: 1.5 },
+  timerUnit: { fontSize: 14, color: COLORS.textSecondary, fontWeight: '700', textTransform: 'uppercase' },
+  decoCircle1: { position: 'absolute', right: -20, bottom: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(74, 124, 89, 0.02)', zIndex: 1 },
+  decoCircle2: { position: 'absolute', right: 20, bottom: -60, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(74, 124, 89, 0.02)', borderWidth: 1, borderColor: 'rgba(74, 124, 89, 0.03)', zIndex: 1 }
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import AppHeader from "../../components/AppHeader";
 import { API_URL } from "@/constants/Api";
 
@@ -75,7 +75,7 @@ export default function ComposantsScreen() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       const params = { controller_id: controllerId };
 
       const [resSensors, resActuators] = await Promise.all([
@@ -102,7 +102,7 @@ export default function ComposantsScreen() {
     }
 
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       
       await axios.post(`${API_URL}/readings/components`, {
         type: activeTab === 'capteurs' ? 'sensor' : 'actuator',
@@ -234,6 +234,9 @@ export default function ComposantsScreen() {
             style={[styles.tabButton, activeTab === "capteurs" && styles.tabButtonActive]}
             onPress={() => { setActiveTab("capteurs"); setSensorPage(1); }}
           >
+            {activeTab !== "capteurs" && (
+              <Ionicons name="hardware-chip-outline" size={14} color="#717171" style={{ marginRight: 6 }} />
+            )}
             <Text style={[styles.tabText, activeTab === "capteurs" && styles.tabTextActive]}>
               Capteurs
             </Text>
@@ -242,6 +245,9 @@ export default function ComposantsScreen() {
             style={[styles.tabButton, activeTab === "actionneurs" && styles.tabButtonActive]}
             onPress={() => { setActiveTab("actionneurs"); setActuatorPage(1); }}
           >
+            {activeTab !== "actionneurs" && (
+              <Ionicons name="construct-outline" size={14} color="#717171" style={{ marginRight: 6 }} />
+            )}
             <Text style={[styles.tabText, activeTab === "actionneurs" && styles.tabTextActive]}>
               Actionneurs
             </Text>
@@ -403,52 +409,56 @@ export default function ComposantsScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F0EB" },
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 20, paddingBottom: 100 }, // added bottom padding for FAB
+  content: { padding: 20, paddingBottom: 100 },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: COLORS.tabInactiveBg,
-    borderRadius: 24,
+    backgroundColor: "#F0EAE4",
+    borderRadius: 16,
     padding: 4,
     marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   tabButton: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: 10,
     alignItems: "center",
-    borderRadius: 20,
+    justifyContent: "center",
+    borderRadius: 12,
   },
   tabButtonActive: {
-    backgroundColor: COLORS.card,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#717171",
   },
   tabTextActive: {
-    color: COLORS.green,
+    color: "#4A7C59",
   },
   listContainer: {
-    marginTop: 10,
+    marginTop: 8,
   },
   itemCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
   itemIconBox: {
     width: 48,
@@ -464,13 +474,14 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.textPrimary,
   },
   itemSub: {
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 4,
+    fontWeight: '600',
   },
   deleteButton: {
     padding: 10,
@@ -481,14 +492,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: COLORS.textSecondary,
     marginTop: 20,
-    fontStyle: "italic"
+    fontStyle: "italic",
+    fontWeight: '600',
   },
   paginationContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 24,
+    marginBottom: 40,
     gap: 16,
   },
   pageButton: {
@@ -500,98 +512,107 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0EAE4',
   },
   pageButtonDisabled: {
-    backgroundColor: COLORS.tabInactiveBg,
+    backgroundColor: "#F0EAE4",
+    borderColor: "#F0EAE4",
     shadowOpacity: 0,
     elevation: 0,
   },
   pageText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.textPrimary,
+    minWidth: 80,
+    textAlign: 'center',
   },
   fab: {
     position: "absolute",
     right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: COLORS.green,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowRadius: 10,
+    elevation: 6,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     padding: 20,
   },
   modalContent: {
     backgroundColor: "#FFF",
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
     color: COLORS.textPrimary,
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: "center",
+    textTransform: 'uppercase',
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "800",
     color: COLORS.textSecondary,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
     backgroundColor: "#F7F8F9",
     borderWidth: 1,
-    borderColor: "#E8E0D8",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderColor: "#F0EAE4",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     fontSize: 15,
     color: COLORS.textPrimary,
+    fontWeight: '600',
   },
   pinScroll: {
     maxHeight: 180,
     backgroundColor: "#F7F8F9",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E8E0D8",
+    borderColor: "#F0EAE4",
     padding: 8,
   },
   pinGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
   },
   pinChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "#E8E0D8",
+    borderColor: "#F0EAE4",
   },
   pinChipSelected: {
     backgroundColor: COLORS.green,
@@ -600,38 +621,38 @@ const styles = StyleSheet.create({
   pinChipText: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   pinChipTextSelected: {
     color: "#FFF",
   },
   modalButtons: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 10,
+    gap: 16,
+    marginTop: 12,
   },
   modalButtonCancel: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 14,
     backgroundColor: "#F5F0EB",
     alignItems: "center",
   },
   modalButtonTextCancel: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
     color: COLORS.textPrimary,
   },
   modalButtonSubmit: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 14,
     backgroundColor: COLORS.green,
     alignItems: "center",
   },
   modalButtonTextSubmit: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#FFF",
   },
 
@@ -642,22 +663,22 @@ const styles = StyleSheet.create({
   templateChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#F0F7F2',
+    backgroundColor: '#EFF6F1',
     borderWidth: 1,
     borderColor: '#D4E8D9',
-    marginRight: 8,
+    marginRight: 10,
   },
   templateChipSelected: {
     backgroundColor: COLORS.green,
     borderColor: COLORS.green,
   },
   templateChipText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: COLORS.green,
   },
   templateChipTextSelected: {
@@ -666,16 +687,16 @@ const styles = StyleSheet.create({
   unitChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     alignItems: 'center',
   },
   unitChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: '#F7F8F9',
     borderWidth: 1,
-    borderColor: '#E8E0D8',
+    borderColor: "#F0EAE4",
   },
   unitChipSelected: {
     backgroundColor: '#EFF6F1',
@@ -683,7 +704,7 @@ const styles = StyleSheet.create({
   },
   unitChipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textSecondary,
   },
   unitChipTextSelected: {

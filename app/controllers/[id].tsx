@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import { API_URL } from "@/constants/Api";
 
 const COLORS = {
@@ -54,7 +54,7 @@ export default function ManageControllerScreen() {
     
     // Vérifier si c'est le contrôleur actif
     const checkActive = async () => {
-      const activeId = await SecureStore.getItemAsync('selectedControllerId');
+      const activeId = await storage.getItem('selectedControllerId');
       setIsActive(activeId === id);
     };
     checkActive();
@@ -75,9 +75,9 @@ export default function ManageControllerScreen() {
       await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name });
       Alert.alert("Succès", "Contrôleur mis à jour avec succès");
       
-      const activeId = await SecureStore.getItemAsync('selectedControllerId');
+      const activeId = await storage.getItem('selectedControllerId');
       if (activeId === id) {
-        await SecureStore.setItemAsync('selectedControllerName', controller.name);
+        await storage.setItem('selectedControllerName', controller.name);
       }
     } catch (error: any) {
       console.error(error);
@@ -99,7 +99,7 @@ export default function ManageControllerScreen() {
           onPress: async () => {
             try {
               await axios.delete(`${API_URL}/controllers/${id}`);
-              const activeId = await SecureStore.getItemAsync('selectedControllerId');
+              const activeId = await storage.getItem('selectedControllerId');
               if (activeId === id) {
                 await disconnect();
               } else {
@@ -117,8 +117,8 @@ export default function ManageControllerScreen() {
 
   const selectAsActive = async () => {
     try {
-      await SecureStore.setItemAsync('selectedControllerId', id as string);
-      await SecureStore.setItemAsync('selectedControllerName', controller.name);
+      await storage.setItem('selectedControllerId', id as string);
+      await storage.setItem('selectedControllerName', controller.name);
       setIsActive(true);
       Alert.alert("Succès", "Cet appareil est désormais le contrôleur actif", [
         { text: "OK", onPress: () => router.replace("/(tabs)" as any) }
@@ -129,8 +129,8 @@ export default function ManageControllerScreen() {
   };
 
   const disconnect = async () => {
-    await SecureStore.deleteItemAsync('selectedControllerId');
-    await SecureStore.deleteItemAsync('selectedControllerName');
+    await storage.deleteItem('selectedControllerId');
+    await storage.deleteItem('selectedControllerName');
     setIsActive(false);
     router.replace("/controllers" as any);
   };
