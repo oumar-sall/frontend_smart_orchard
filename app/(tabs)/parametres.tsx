@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import { useRouter } from "expo-router";
 import AppHeader from "../../components/AppHeader";
 import { API_URL } from "@/constants/Api";
@@ -129,7 +129,7 @@ export default function ParametresScreen() {
 
   const sendToBackend = async (key: string, val: any, pin: string) => {
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       await axios.put(`${API_URL}/readings/settings`, {
         [key]: val,
         pin,
@@ -142,7 +142,7 @@ export default function ParametresScreen() {
 
   const fetchSettings = React.useCallback(async (pin: string) => {
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       const response = await axios.get(`${API_URL}/readings/settings`, {
         params: { pin, controller_id: controllerId }
       });
@@ -163,7 +163,7 @@ export default function ParametresScreen() {
 
   const fetchAvailableSensors = React.useCallback(async () => {
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
       const response = await axios.get(`${API_URL}/readings/sensors`, {
         params: { controller_id: controllerId }
       });
@@ -186,8 +186,8 @@ export default function ParametresScreen() {
       const refresh = async () => {
         try {
           // Charger le contrôleur actif depuis le stockage
-          const storedId = await SecureStore.getItemAsync('selectedControllerId');
-          const storedName = await SecureStore.getItemAsync('selectedControllerName');
+          const storedId = await storage.getItem('selectedControllerId');
+          const storedName = await storage.getItem('selectedControllerName');
           if (storedId) {
             setActiveController({ id: storedId, name: storedName || 'Contrôleur sans nom' });
           }
@@ -438,59 +438,43 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#8E8E93",
     letterSpacing: 1.2,
-    marginBottom: 16,
+    marginBottom: 20,
     textTransform: 'uppercase',
   },
 
   // --- BOÎTIER ---
   controllerCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 32,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
-  controllerInfo: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1, marginRight: 8 },
+  controllerInfo: { flexDirection: "row", alignItems: "center", gap: 14, flex: 1, marginRight: 8 },
   controllerIconBox: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     backgroundColor: "#EFF6F1",
-    borderRadius: 15,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  controllerName: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary },
-  controllerSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 20,
-    flexShrink: 0,
-  },
-  statusOnline: { backgroundColor: '#EFF6F1' },
-  statusOffline: { backgroundColor: '#F5F5F5' },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  dotOnline: { backgroundColor: '#22C55E' },
-  dotOffline: { backgroundColor: '#D1D5DB' },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  statusTextOnline: { color: '#16A34A' },
-  statusTextOffline: { color: '#9CA3AF' },
-
+  controllerName: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary },
+  controllerSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
+  
   // --- SECTIONS ---
-  settingsSection: { marginBottom: 24 },
+  settingsSection: { marginBottom: 32 },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
     color: "#8E8E93",
     letterSpacing: 1.2,
@@ -504,18 +488,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: '#F0EAE4',
     gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   actuatorChipActive: { backgroundColor: COLORS.green, borderColor: COLORS.green },
-  actuatorChipText: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  actuatorChipText: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
   actuatorChipTextActive: { color: '#FFF' },
   activeDot: {
-    width: 4, height: 4, borderRadius: 2,
+    width: 6, height: 6, borderRadius: 3,
     backgroundColor: '#FFF', marginLeft: 4,
   },
 
@@ -529,13 +518,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
   autoModeInfo: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
-  autoModeDesc: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  autoModeDesc: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
 
   // --- SLIDER ---
   settingCard: {
@@ -544,93 +535,92 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
-  settingCardDisabled: { opacity: 0.5 },
-  settingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  settingCardDisabled: { opacity: 0.6 },
+  settingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   iconBox: {
-    width: 38, height: 38, borderRadius: 12,
+    width: 42, height: 42, borderRadius: 12,
     backgroundColor: '#F7F8F9',
-    alignItems: 'center', justifyContent: 'center', marginRight: 14,
+    alignItems: 'center', justifyContent: 'center', marginRight: 16,
   },
-  settingLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  settingValue: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  unit: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  settingLabel: { flex: 1, fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
+  settingValue: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  unit: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
 
   sliderContainer: {},
   sliderTrack: {
-    height: 24, backgroundColor: '#F0F0F0',
+    height: 24, backgroundColor: '#F0EAE4',
     borderRadius: 12, position: 'relative', justifyContent: 'center',
   },
   sliderFill: { height: '100%', borderRadius: 12 },
   sliderThumb: {
-    width: 38, height: 38, borderRadius: 19,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#FFF', borderWidth: 3,
-    position: 'absolute', marginLeft: -19,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+    position: 'absolute', marginLeft: -18,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 6, elevation: 4,
   },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  sliderLimit: { fontSize: 11, fontWeight: '600', color: '#B0B0B0' },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  sliderLimit: { fontSize: 12, fontWeight: '700', color: '#B0B0B0' },
 
   // --- CAPTEUR ---
   sectionCard: {
     backgroundColor: COLORS.card,
     borderRadius: 24,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 32,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  sectionSub: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  sectionSub: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 20, fontWeight: '600' },
   sensorList: { marginHorizontal: -4 },
   sensorChip: {
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: '#F5F5F5',
-    marginHorizontal: 4, borderWidth: 1, borderColor: '#EBEBEB',
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 12, backgroundColor: '#F7F8F9',
+    marginHorizontal: 4, borderWidth: 1, borderColor: '#F0EAE4',
   },
   sensorChipSelected: { backgroundColor: '#EFF6F1', borderColor: COLORS.green },
-  sensorChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  sensorChipText: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
   sensorChipTextSelected: { color: COLORS.green },
 
   // --- AVANCÉ ---
   experimentalSection: {
     backgroundColor: '#F9FAFB', borderRadius: 24, padding: 24, marginBottom: 32,
-    borderWidth: 1, borderColor: '#F0F0F0', borderStyle: 'dashed',
+    borderWidth: 1, borderColor: '#F0EAE4', borderStyle: 'dashed',
   },
-  experimentalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  experimentalDesc: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 20, fontStyle: 'italic' },
+  experimentalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  experimentalDesc: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 20, fontStyle: 'italic', fontWeight: '500' },
   betaBadge: {
     backgroundColor: '#E5E7EB', paddingHorizontal: 8,
-    paddingVertical: 2, borderRadius: 6, marginBottom: 16,
+    paddingVertical: 2, borderRadius: 6,
   },
   betaText: { fontSize: 9, fontWeight: '900', color: '#6B7280' },
 
   infoCard: {
     flexDirection: 'row', alignItems: 'center',
-    gap: 16, padding: 8, opacity: 0.6,
+    gap: 16, padding: 8, opacity: 0.8, marginTop: 16,
   },
   infoIconBox: {
-    width: 44, height: 44, borderRadius: 12,
+    width: 48, height: 48, borderRadius: 14,
     backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center',
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  infoTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  infoSub: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
+  infoTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
+  infoSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
 
-  // --- SIMULATION (TEMP) ---
-  simButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F3F4F6', padding: 12, borderRadius: 12,
-    borderWidth: 1, borderColor: '#E5E7EB', marginTop: 16,
-    justifyContent: 'center'
-  },
   systemSection: {
     marginTop: 8,
     marginBottom: 32,
@@ -640,15 +630,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: COLORS.card,
-    padding: 16,
-    borderRadius: 20,
+    padding: 20,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(0,0,0,0.02)',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 4,
   },
   manageBtnContent: {
     flexDirection: "row",
@@ -656,16 +646,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   manageIconBox: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     backgroundColor: "#EFF6F1",
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   manageBtnText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.textPrimary,
   },
 });

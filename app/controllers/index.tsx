@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter, useFocusEffect } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { API_URL } from "@/constants/Api";
 
@@ -52,8 +52,8 @@ export default function ControllerListScreen() {
 
   const selectController = async (controller: any) => {
     try {
-      await SecureStore.setItemAsync('selectedControllerId', controller.id);
-      await SecureStore.setItemAsync('selectedControllerName', controller.name);
+      await storage.setItem('selectedControllerId', controller.id);
+      await storage.setItem('selectedControllerName', controller.name);
       router.replace("/(tabs)");
     } catch {
       Alert.alert("Erreur", "Impossible de sélectionner le contrôleur");
