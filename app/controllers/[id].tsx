@@ -28,7 +28,10 @@ export default function ManageControllerScreen() {
 
   const fetchController = React.useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/controllers/${id}`);
+      const token = await storage.getItem("userToken");
+      const response = await axios.get(`${API_URL}/controllers/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setController(response.data);
     } catch {
       Alert.alert("Erreur", "Impossible de charger les informations du contrôleur");
@@ -40,8 +43,10 @@ export default function ManageControllerScreen() {
 
   const fetchStatus = React.useCallback(async () => {
     try {
+      const token = await storage.getItem("userToken");
       const response = await axios.get(`${API_URL}/readings/status`, {
-        params: { controller_id: id }
+        params: { controller_id: id },
+        headers: { Authorization: `Bearer ${token}` }
       });
       setIsOnline(response.data.online);
     } catch {
@@ -71,8 +76,11 @@ export default function ManageControllerScreen() {
     }
     setSaving(true);
     try {
+      const token = await storage.getItem("userToken");
       // On n'envoie que le nom car l'IMEI n'est plus modifiable
-      await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name });
+      await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       Alert.alert("Succès", "Contrôleur mis à jour avec succès");
       
       const activeId = await storage.getItem('selectedControllerId');
@@ -98,13 +106,17 @@ export default function ManageControllerScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/controllers/${id}`);
+              const token = await storage.getItem("userToken");
+              await axios.delete(`${API_URL}/controllers/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
               const activeId = await storage.getItem('selectedControllerId');
               if (activeId === id) {
-                await disconnect();
-              } else {
-                router.back();
+                await storage.deleteItem('selectedControllerId');
+                await storage.deleteItem('selectedControllerName');
               }
+              Alert.alert("Succès", "Contrôleur supprimé avec succès");
+              router.replace("/controllers" as any);
             } catch (error) {
               console.error(error);
               Alert.alert("Erreur", "Impossible de supprimer le contrôleur");

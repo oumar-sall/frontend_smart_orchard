@@ -7,6 +7,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { storage } from "@/utils/storage";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { API_URL } from "@/constants/Api";
+import { logger } from "@/shared/logger";
 
 const COLORS = {
   background: "#F5F0EB",
@@ -22,7 +23,7 @@ export default function ControllerListScreen() {
   const [controllers, setControllers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [newController, setNewController] = useState({ name: '', imei: '' });
+  const [newController, setNewController] = useState({ name: '', imei: '', security_pin: '' });
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
@@ -30,15 +31,23 @@ export default function ControllerListScreen() {
   const fetchControllers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/controllers`);
+      const token = await storage.getItem("userToken");
+      const response = await axios.get(`${API_URL}/controllers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setControllers(response.data);
     } catch (error: any) {
-      console.error("Erreur récup controllers:", error);
-      Alert.alert("Erreur", "Impossible de charger les contrôleurs");
+      logger.error("Erreur récup controllers:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        await storage.deleteItem("userToken");
+        router.replace("/login");
+      } else {
+        Alert.alert("Erreur", "Impossible de charger les contrôleurs");
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchControllers();
@@ -61,16 +70,21 @@ export default function ControllerListScreen() {
   };
 
   const addController = async () => {
-    if (!newController.name || !newController.imei) {
+    if (!newController.name || !newController.imei || !newController.security_pin) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
     try {
-      await axios.post(`${API_URL}/controllers`, newController);
+      const token = await storage.getItem("userToken");
+      await axios.post(`${API_URL}/controllers`, newController, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setModalVisible(false);
-      setNewController({ name: '', imei: '' });
+      setNewController({ name: '', imei: '', security_pin: '' });
       fetchControllers();
+      Alert.alert("Succès", "Contrôleur ajouté avec succès");
     } catch (error: any) {
+      logger.error("Erreur ajout controller:", error);
       Alert.alert("Erreur", error.response?.data?.error || "Impossible d'ajouter le contrôleur");
     }
   };
@@ -170,6 +184,20 @@ export default function ControllerListScreen() {
               <TouchableOpacity style={styles.scanBtnInside} onPress={startScanning}>
                 <Ionicons name="qr-code-outline" size={24} color={COLORS.green} />
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.inputInContainer}
+                placeholder="PIN de sécurité (ex: 123456)"
+                keyboardType="numeric"
+                secureTextEntry
+                value={newController.security_pin}
+                onChangeText={(text) => setNewController(prev => ({ ...prev, security_pin: text }))}
+              />
+              <View style={styles.pinIconContainer}>
+                <Ionicons name="lock-closed-outline" size={24} color={COLORS.green} />
+              </View>
             </View>
 
             <View style={styles.modalButtons}>
@@ -316,6 +344,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scanBtnInside: {
+    padding: 10,
+    marginLeft: 5,
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  pinIconContainer: {
     padding: 10,
     marginLeft: 5,
     backgroundColor: COLORS.background,
