@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { logger } from '../shared/logger';
 import { storage } from '../utils/storage';
+import { API_URL } from '../constants/Api';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -26,13 +27,29 @@ export default function RegisterScreen() {
         setLoading(true);
         try {
             const token = await storage.getItem('userToken');
-            if (token) {
-                logger.info('Tentative d\'inscription avec token présent');
-            }
             
-            Alert.alert('Succès', 'Profil complété avec succès !', [
-                { text: 'Continuer', onPress: () => router.replace('/controllers' as any) }
-            ]);
+            // Appeler l'API pour mettre à jour le nom/prénom
+            const response = await fetch(`${API_URL}/auth/update-profile`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Mettre à jour le cache local
+                await storage.setItem('userData', JSON.stringify(data.user));
+                
+                Alert.alert('Succès', 'Profil complété avec succès !', [
+                    { text: 'Continuer', onPress: () => router.replace('/controllers' as any) }
+                ]);
+            } else {
+                const errorData = await response.json();
+                Alert.alert('Erreur', errorData.error || 'Impossible de mettre à jour le profil');
+            }
         } catch (err) {
             logger.error('Erreur inscription:', err);
             Alert.alert('Erreur', 'Une erreur est survenue lors de l\'enregistrement');

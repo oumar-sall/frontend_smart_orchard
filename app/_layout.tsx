@@ -27,20 +27,30 @@ export default function RootLayout() {
     const checkRedirect = async () => {
       if (isLoading) return;
 
-      const currentToken = await storage.getItem("userToken");
-      const inAuthGroup = segments[0] === "login";
-      const isRegistering = segments[0] === "register";
+      try {
+        const token = await storage.getItem("userToken");
+        const seg0 = segments[0] as string | undefined;
+        const inAuthGroup = seg0 === "login";
+        const isRegistering = seg0 === "register";
 
-      if (!currentToken && !inAuthGroup && !isRegistering) {
-        router.replace("/login");
-      } else if (currentToken && (inAuthGroup || (segments.length as number) === 0 || (segments[0] as string) === "index")) {
-        // Redirection intelligente sauf si on est déjà en train de s'enregistrer
-        const selectedId = await storage.getItem('selectedControllerId');
-        if (selectedId) {
-          router.replace("/(tabs)");
+        if (!token) {
+          if (!inAuthGroup && !isRegistering) {
+            router.replace("/login");
+          }
         } else {
-          router.replace("/controllers" as any);
+          // Utilisation d'un cast 'any' pour éviter les erreurs TS sur les chemins
+          const isAtRoot = (segments as any).length === 0 || seg0 === "" || seg0 === "index" || seg0 === undefined;
+          if (inAuthGroup || isAtRoot) {
+            const selectedId = await storage.getItem('selectedControllerId');
+            if (selectedId) {
+              router.replace("/(tabs)");
+            } else {
+              router.replace("/controllers" as any);
+            }
+          }
         }
+      } catch (err) {
+        console.error("Erreur checkRedirect:", err);
       }
     };
     checkRedirect();

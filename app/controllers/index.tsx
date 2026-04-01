@@ -17,12 +17,17 @@ const COLORS = {
   textSecondary: "#717171",
   border: "#E8E0D8",
   danger: "#FF3B30",
+  inactive: "#9E9E9E",
 };
 
 export default function ControllerListScreen() {
   const [controllers, setControllers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'join'>('join');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [foundController, setFoundController] = useState<any | null>(null);
   const [newController, setNewController] = useState({ name: '', imei: '', security_pin: '' });
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
@@ -69,23 +74,54 @@ export default function ControllerListScreen() {
     }
   };
 
+  const lookupImei = async () => {
+    if (!newController.imei) return;
+    setSearchLoading(true);
+    setFoundController(null);
+    try {
+      const token = await storage.getItem("userToken");
+      const response = await axios.get(`${API_URL}/controllers/search?imei=${newController.imei}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFoundController(response.data);
+      setNewController(prev => ({ ...prev, name: response.data.name }));
+    } catch (error: any) {
+      if (error.response?.status !== 404) {
+        logger.error("Erreur lookup imei:", error);
+      }
+      setFoundController(null);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const addController = async () => {
-    if (!newController.name || !newController.imei || !newController.security_pin) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+    // Validation selon le mode
+    if (modalMode === 'create' && !newController.name) {
+      Alert.alert("Erreur", "Veuillez donner un nom au contrôleur");
       return;
     }
+    if (!newController.imei || !newController.security_pin) {
+      Alert.alert("Erreur", "IMEI et PIN de sécurité requis");
+      return;
+    }
+
     try {
+      setLoading(true);
       const token = await storage.getItem("userToken");
       await axios.post(`${API_URL}/controllers`, newController, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setModalVisible(false);
       setNewController({ name: '', imei: '', security_pin: '' });
+      setFoundController(null);
       fetchControllers();
-      Alert.alert("Succès", "Contrôleur ajouté avec succès");
+      Alert.alert("Succès", modalMode === 'create' ? "Contrôleur créé" : "Contrôleur rejoint");
     } catch (error: any) {
       logger.error("Erreur ajout controller:", error);
-      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'ajouter le contrôleur");
+      Alert.alert("Erreur", error.response?.data?.error || "Impossible d'opérer");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -131,15 +167,41 @@ export default function ControllerListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mes Contrôleurs</Text>
-        <Text style={styles.subtitle}>Sélectionnez un appareil pour commencer</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>Mes Contrôleurs</Text>
+          <TouchableOpacity 
+            style={styles.profileBtn} 
+            onPress={() => router.push("/(tabs)/profil" as any)}
+          >
+            <Ionicons name="person-circle-outline" size={32} color={COLORS.green} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.subtitle}>Gérez vos appareils connectés</Text>
+
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher par nom ou IMEI..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery !== "" && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {loading ? (
+      {loading && controllers.length === 0 ? (
         <ActivityIndicator size="large" color={COLORS.green} style={styles.loader} />
       ) : (
         <FlatList
-          data={controllers}
+          data={controllers.filter(c => 
+            c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            c.imei.includes(searchQuery)
+          )}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -160,18 +222,44 @@ export default function ControllerListScreen() {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setFoundController(null);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Nouveau Contrôleur</Text>
+            <Text style={styles.modalTitle}>Ajouter un Contrôleur</Text>
+
+            <View style={styles.modeToggle}>
+              <TouchableOpacity 
+                style={[styles.modeBtn, modalMode === 'join' && styles.modeBtnActive]}
+                onPress={() => {
+                  setModalMode('join');
+                  setFoundController(null);
+                }}
+              >
+                <Text style={[styles.modeBtnText, modalMode === 'join' && styles.modeBtnTextActive]}>Rejoindre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modeBtn, modalMode === 'create' && styles.modeBtnActive]}
+                onPress={() => {
+                  setModalMode('create');
+                  setFoundController(null);
+                }}
+              >
+                <Text style={[styles.modeBtnText, modalMode === 'create' && styles.modeBtnTextActive]}>Nouveau</Text>
+              </TouchableOpacity>
+            </View>
             
-            <TextInput
-              style={styles.input}
-              placeholder="Nom du contrôleur (ex: Verger Nord)"
-              value={newController.name}
-              onChangeText={(text) => setNewController(prev => ({ ...prev, name: text }))}
-            />
+            {modalMode === 'create' && (
+              <TextInput
+                style={styles.input}
+                placeholder="Nom du contrôleur (ex: Verger Nord)"
+                value={newController.name}
+                onChangeText={(text) => setNewController(prev => ({ ...prev, name: text }))}
+              />
+            )}
             
             <View style={styles.inputContainer}>
               <TextInput
@@ -180,12 +268,28 @@ export default function ControllerListScreen() {
                 keyboardType="numeric"
                 value={newController.imei}
                 onChangeText={(text) => setNewController(prev => ({ ...prev, imei: text }))}
+                onBlur={modalMode === 'join' ? lookupImei : undefined}
               />
               <TouchableOpacity style={styles.scanBtnInside} onPress={startScanning}>
                 <Ionicons name="qr-code-outline" size={24} color={COLORS.green} />
               </TouchableOpacity>
             </View>
 
+            {modalMode === 'join' && (
+              <View style={styles.lookupResult}>
+                {searchLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.green} />
+                ) : foundController ? (
+                  <View style={styles.foundInfo}>
+                    <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
+                    <Text style={styles.foundText}>Boîtier trouvé : {foundController.name}</Text>
+                  </View>
+                ) : newController.imei.length > 5 ? (
+                  <Text style={styles.notFoundText}>Aucun boîtier correspondant</Text>
+                ) : null}
+              </View>
+            )}
+            
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.inputInContainer}
@@ -201,11 +305,21 @@ export default function ControllerListScreen() {
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.button, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelBtn]} 
+                onPress={() => {
+                  setModalVisible(false);
+                  setFoundController(null);
+                }}
+              >
                 <Text style={styles.cancelText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, styles.addBtn]} onPress={addController}>
-                <Text style={styles.addText}>Ajouter</Text>
+              <TouchableOpacity 
+                style={[styles.button, styles.addBtn, (modalMode === 'join' && !foundController) && styles.buttonDisabled]} 
+                onPress={addController}
+                disabled={modalMode === 'join' && !foundController}
+              >
+                <Text style={styles.addText}>{modalMode === 'create' ? "Créer" : "Rejoindre"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -257,8 +371,33 @@ export default function ControllerListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: { padding: 20, marginBottom: 10 },
+  headerTop: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center" 
+  },
+  profileBtn: {
+    padding: 4,
+  },
   title: { fontSize: 28, fontWeight: "bold", color: COLORS.textPrimary },
   subtitle: { fontSize: 16, color: COLORS.textSecondary, marginTop: 5 },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginTop: 15,
+    height: 44,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+  },
   loader: { marginTop: 50 },
   listContent: { padding: 16 },
   card: {
@@ -358,6 +497,65 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  modeToggle: {
+    flexDirection: "row",
+    backgroundColor: "#F0F0F0",
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 20,
+    width: "100%",
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  modeBtnActive: {
+    backgroundColor: "white",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  modeBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
+  },
+  modeBtnTextActive: {
+    color: COLORS.green,
+  },
+  lookupResult: {
+    width: "100%",
+    marginBottom: 15,
+    paddingHorizontal: 5,
+    minHeight: 20,
+    justifyContent: "center",
+  },
+  foundInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EAF2EC",
+    padding: 8,
+    borderRadius: 8,
+  },
+  foundText: {
+    marginLeft: 8,
+    color: COLORS.green,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  notFoundText: {
+    color: COLORS.danger,
+    fontSize: 12,
+    textAlign: "center",
+  },
+  buttonDisabled: {
+    backgroundColor: COLORS.inactive,
+    opacity: 0.6,
   },
   // Scanner styles
   scannerContainer: {

@@ -32,13 +32,18 @@ export default function LoginScreen() {
             if (response.ok) {
                 setStep('otp');
                 logger.info(`OTP envoyé pour ${phone}`);
+                Alert.alert("Code envoyé", "Le code de test est 123456 (Voir aussi votre terminal backend)");
             } else {
                 const data = await response.json();
+                console.error("Réponse backend erronée:", data);
                 Alert.alert('Erreur', data.error || 'Impossible d\'envoyer le code');
             }
-        } catch (err) {
+        } catch (err: any) {
+            console.error('ERREUR FETCH send-otp:', err);
             logger.error('Erreur send-otp:', err);
-            Alert.alert('Erreur', 'Impossible de contacter le serveur');
+            Alert.alert('Erreur de connexion', 
+                `Impossible de contacter le serveur à ${API_URL}. \n\nErreur: ${err.message}\n\nVérifiez que le serveur tourne et que l'IP dans front/constants/Api.ts est correcte.`
+            );
         } finally {
             setLoading(false);
         }

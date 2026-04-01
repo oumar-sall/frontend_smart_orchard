@@ -129,21 +129,38 @@ export default function ProfilScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mon Profil</Text>
-        <TouchableOpacity 
-          style={[styles.editButton, isEditing && { backgroundColor: COLORS.green }]}
-          onPress={() => isEditing ? handleUpdate() : setIsEditing(true)}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name={isEditing ? "checkmark" : "pencil"} size={16} color={isEditing ? "#FFF" : COLORS.textPrimary} />
-              <Text style={[styles.editText, isEditing && { color: "#FFF" }]}>{isEditing ? "Enregistrer" : "Modifier"}</Text>
-            </>
-          )}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Mon Profil</Text>
+        
+        <View style={styles.headerActions}>
+          {isEditing && (
+            <TouchableOpacity 
+              style={styles.cancelIconButton} 
+              onPress={() => { setIsEditing(false); loadUser(); }}
+              disabled={loading}
+            >
+              <Ionicons name="close-circle-outline" size={28} color={COLORS.danger} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.editButton, isEditing && { backgroundColor: COLORS.green }]}
+            onPress={() => isEditing ? handleUpdate() : setIsEditing(true)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name={isEditing ? "checkmark" : "pencil"} size={16} color={isEditing ? "#FFF" : COLORS.textPrimary} />
+                <Text style={[styles.editText, isEditing && { color: "#FFF" }]}>{isEditing ? "Enregistrer" : "Modifier"}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -263,6 +280,8 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   backButton: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
+  cancelIconButton: { padding: 4 },
   backText: { fontSize: 16, color: COLORS.textPrimary },
   editButton: {
     flexDirection: "row",
