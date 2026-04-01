@@ -59,7 +59,6 @@ export default function RootLayout() {
       <Stack.Screen name="login" options={{ gestureEnabled: false }} />
       <Stack.Screen name="register" options={{ gestureEnabled: false }} />
       <Stack.Screen name="cgu" options={{ presentation: 'modal', headerShown: true, title: "Conditions Générales" }} />
-      <Stack.Screen name="profil" options={{ presentation: 'card', headerShown: true, title: "Mon Profil" }} />
       <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
       <Stack.Screen name="controllers" options={{ gestureEnabled: false }} />
     </Stack>

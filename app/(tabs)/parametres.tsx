@@ -247,6 +247,16 @@ export default function ParametresScreen() {
         
         <View style={styles.systemSection}>
           <Text style={styles.sectionTitle}>COMPTE</Text>
+          <TouchableOpacity style={[styles.manageBtn, { marginBottom: 12 }]} onPress={() => router.push("/(tabs)/profil" as any)}>
+            <View style={styles.manageBtnContent}>
+              <View style={styles.manageIconBox}>
+                <Ionicons name="person-outline" size={20} color={COLORS.green} />
+              </View>
+              <Text style={styles.manageBtnText}>Mon Profil</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.manageBtn, { borderColor: '#FEE2E2' }]} onPress={handleLogout}>
             <View style={styles.manageBtnContent}>
               <View style={[styles.manageIconBox, { backgroundColor: '#FEF2F2' }]}>
