@@ -51,4 +51,24 @@ export const storage = {
       await SecureStore.deleteItemAsync(key);
     }
   },
+
+  /**
+   * Clears all known keys from storage (full reset).
+   */
+  async clearAll(): Promise<void> {
+    const keys = ["userToken", "userData", "selectedControllerId", "selectedControllerName"];
+    for (const key of keys) {
+      await this.deleteItem(key);
+    }
+  },
+
+  /**
+   * Clears only controller-related selection data.
+   */
+  async clearControllerSelection(): Promise<void> {
+    const keys = ["selectedControllerId", "selectedControllerName"];
+    for (const key of keys) {
+      await this.deleteItem(key);
+    }
+  }
 };

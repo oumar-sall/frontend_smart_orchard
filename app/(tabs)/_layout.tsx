@@ -1,6 +1,8 @@
-import { Tabs } from "expo-router";
+import { Tabs, useFocusEffect } from "expo-router";
 import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState, useCallback } from "react";
+import { storage } from "@/utils/storage";
 
 // Couleurs de la maquette
 const COLORS = {
@@ -31,6 +33,24 @@ function TabIcon({
 }
 
 export default function TabsLayout() {
+  const [hasController, setHasController] = useState<boolean>(true);
+
+  const checkController = useCallback(async () => {
+    const id = await storage.getItem('selectedControllerId');
+    setHasController(!!id);
+  }, []);
+
+  useEffect(() => {
+    checkController();
+  }, [checkController]);
+
+  // Rafraîchir quand on revient sur cet écran
+  useFocusEffect(
+    useCallback(() => {
+      checkController();
+    }, [checkController])
+  );
+
   return (
     <Tabs
       screenOptions={{
@@ -46,6 +66,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Dashboard",
+          href: hasController ? undefined : null as any,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="grid-outline" color={color} focused={focused} />
           ),
@@ -55,6 +76,7 @@ export default function TabsLayout() {
         name="historique"
         options={{
           title: "Historique",
+          href: hasController ? undefined : null as any,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="bar-chart-outline" color={color} focused={focused} />
           ),
@@ -64,6 +86,7 @@ export default function TabsLayout() {
         name="composants"
         options={{
           title: "Composants",
+          href: hasController ? undefined : null as any,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="hardware-chip-outline" color={color} focused={focused} />
           ),
@@ -73,8 +96,18 @@ export default function TabsLayout() {
         name="parametres"
         options={{
           title: "Paramètres",
+          href: hasController ? undefined : null as any,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="settings-outline" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profil"
+        options={{
+          title: "Profil",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="person-outline" color={color} focused={focused} />
           ),
         }}
       />

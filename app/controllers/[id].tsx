@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -28,7 +28,10 @@ export default function ManageControllerScreen() {
 
   const fetchController = React.useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/controllers/${id}`);
+      const token = await storage.getItem("userToken");
+      const response = await axios.get(`${API_URL}/controllers/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setController(response.data);
     } catch {
       Alert.alert("Erreur", "Impossible de charger les informations du contrôleur");
@@ -40,8 +43,10 @@ export default function ManageControllerScreen() {
 
   const fetchStatus = React.useCallback(async () => {
     try {
+      const token = await storage.getItem("userToken");
       const response = await axios.get(`${API_URL}/readings/status`, {
-        params: { controller_id: id }
+        params: { controller_id: id },
+        headers: { Authorization: `Bearer ${token}` }
       });
       setIsOnline(response.data.online);
     } catch {
@@ -71,8 +76,11 @@ export default function ManageControllerScreen() {
     }
     setSaving(true);
     try {
+      const token = await storage.getItem("userToken");
       // On n'envoie que le nom car l'IMEI n'est plus modifiable
-      await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name });
+      await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       Alert.alert("Succès", "Contrôleur mis à jour avec succès");
       
       const activeId = await storage.getItem('selectedControllerId');
@@ -98,13 +106,16 @@ export default function ManageControllerScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/controllers/${id}`);
+              const token = await storage.getItem("userToken");
+              await axios.delete(`${API_URL}/controllers/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
               const activeId = await storage.getItem('selectedControllerId');
               if (activeId === id) {
-                await disconnect();
-              } else {
-                router.back();
+                await storage.clearControllerSelection();
               }
+              Alert.alert("Succès", "Contrôleur supprimé avec succès");
+              router.replace("/controllers" as any);
             } catch (error) {
               console.error(error);
               Alert.alert("Erreur", "Impossible de supprimer le contrôleur");
@@ -129,8 +140,7 @@ export default function ManageControllerScreen() {
   };
 
   const disconnect = async () => {
-    await storage.deleteItem('selectedControllerId');
-    await storage.deleteItem('selectedControllerName');
+    await storage.clearControllerSelection();
     setIsActive(false);
     router.replace("/controllers" as any);
   };
@@ -149,7 +159,8 @@ export default function ManageControllerScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
@@ -225,6 +236,7 @@ export default function ManageControllerScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
