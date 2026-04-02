@@ -15,6 +15,7 @@ interface SettingSliderProps {
   onValueChange: (val: number) => void;
   formatValue?: (val: number) => string | number;
   disabled?: boolean;
+  borderless?: boolean;
 }
 
 export const SettingSlider = React.memo(({
@@ -29,6 +30,7 @@ export const SettingSlider = React.memo(({
   onValueChange,
   formatValue,
   disabled,
+  borderless = false,
 }: SettingSliderProps) => {
   const [localVal, setLocalVal] = React.useState(value);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -46,7 +48,7 @@ export const SettingSlider = React.memo(({
 
   React.useEffect(() => {
     Animated.timing(scaleAnim, {
-      toValue: isDragging ? 1.3 : 1,
+      toValue: isDragging ? 1.4 : 1,
       duration: 150,
       useNativeDriver: true,
     }).start();
@@ -72,7 +74,7 @@ export const SettingSlider = React.memo(({
     onStartShouldSetPanResponder: () => !disabled,
     onMoveShouldSetPanResponder: () => !disabled,
     onPanResponderGrant: (e) => {
-      const pageX = e.nativeEvent.pageX; // Capture coordinates before the async measure call
+      const pageX = e.nativeEvent.pageX;
       setIsDragging(true);
       trackRef.current?.measure((x, y, width, height, px, py) => {
         trackLayout.current = { x: px, width };
@@ -91,15 +93,21 @@ export const SettingSlider = React.memo(({
   const trackColor = disabled ? '#D0D0D0' : iconColor;
 
   return (
-    <View style={[styles.settingCard, disabled && styles.settingCardDisabled]}>
+    <View style={[
+      styles.settingCard, 
+      disabled && styles.settingCardDisabled,
+      borderless && styles.borderlessCard
+    ]}>
       <View style={styles.settingHeader}>
         <View style={[styles.iconBox, disabled && { backgroundColor: '#F0F0F0' }]}>
           <Ionicons name={icon as any} size={20} color={disabled ? '#C0C0C0' : iconColor} />
         </View>
-        <Text style={[styles.settingLabel, disabled && { color: COLORS.textSecondary }]}>{label}</Text>
-        <Text style={[styles.settingValue, disabled && { color: COLORS.textSecondary }]}>
-          {displayVal} <Text style={styles.unit}>{unit}</Text>
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.settingLabel, disabled && { color: COLORS.textSecondary }]}>{label}</Text>
+          <Text style={[styles.settingValue, disabled && { color: COLORS.textSecondary }]}>
+            {displayVal} <Text style={styles.unit}>{unit}</Text>
+          </Text>
+        </View>
       </View>
 
       <View style={styles.sliderContainer}>
@@ -107,7 +115,6 @@ export const SettingSlider = React.memo(({
           ref={trackRef}
           style={[styles.sliderTrack, disabled && { backgroundColor: '#EBEBEB' }]}
           onLayout={() => {
-            // Initial measure on layout to get the correct absolute position
             trackRef.current?.measure((x, y, width, height, pageX, pageY) => {
                if (width > 0) {
                  trackLayout.current = { x: pageX, width };
@@ -156,42 +163,50 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  borderlessCard: {
+    backgroundColor: 'transparent',
+    padding: 0,
+    marginBottom: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   settingCardDisabled: { opacity: 0.6 },
-  settingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
+  settingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
   iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: '#F7F8F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  settingValue: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
-  unit: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
-  sliderContainer: { marginTop: 4 },
+  settingLabel: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 2 },
+  settingValue: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  unit: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
+  sliderContainer: { marginTop: 4, paddingHorizontal: 4 },
   sliderTrack: {
-    height: 8,
+    height: 12,
     backgroundColor: '#F0EAE4',
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     marginBottom: 8,
   },
-  sliderFill: { height: '100%', borderRadius: 4 },
+  sliderFill: { height: '100%', borderRadius: 6 },
   sliderThumb: {
     position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#FFF',
-    borderWidth: 3,
-    marginLeft: -11,
+    borderWidth: 4,
+    marginLeft: -14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  sliderLimit: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  sliderLimit: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '700' },
 });

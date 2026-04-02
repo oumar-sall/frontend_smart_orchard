@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import AppHeader from "../../components/AppHeader";
 import { API_URL } from "@/constants/Api";
 
+import { SettingsGroup } from '@/components/settings/SettingsGroup';
 import { SettingSlider } from '@/components/settings/SettingSlider';
 import { ActuatorSelector } from '@/components/settings/ActuatorSelector';
 import { ControllerCard } from '@/components/settings/ControllerCard';
@@ -65,6 +66,29 @@ export default function ParametresScreen() {
       };
     })()
   ).current;
+
+  // -- Hooks for Props (Rules of Hooks: must be at top level) --
+  const handleDurationChange = React.useCallback((val: number) => {
+    updateSettingDebounced('irrigation_duration', val * 60, selectedPin);
+  }, [updateSettingDebounced, selectedPin]);
+
+  const handleThresholdChange = React.useCallback((val: number) => {
+    updateSettingDebounced('threshold_min', val, selectedPin);
+  }, [updateSettingDebounced, selectedPin]);
+
+  const handleReportingChange = React.useCallback((val: number) => {
+    updateSettingDebounced('reporting_interval', val, selectedPin);
+  }, [updateSettingDebounced, selectedPin]);
+
+  const handleSensorSelect = React.useCallback((id: string) => {
+    updateSetting('sensor_id', id, selectedPin);
+  }, [updateSetting, selectedPin]);
+
+  const handleAutoToggle = React.useCallback((val: boolean) => {
+    updateSetting('auto_mode', val, selectedPin);
+  }, [updateSetting, selectedPin]);
+
+  const formatRoundValue = React.useCallback((val: number) => Math.round(val), []);
 
   const fetchSettings = React.useCallback(async (pin: string) => {
     try {
@@ -153,131 +177,130 @@ export default function ParametresScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <AppHeader />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <AppHeader />
 
-        <Text style={styles.pageTitle}>PARAMÈTRES</Text>
-
-        <ControllerCard
-          name={activeController.name}
-          onPress={() => activeController.id && router.push(`/controllers/${activeController.id}` as any)}
-        />
-
-        <ActuatorSelector
-          actuators={actuators}
-          selectedPin={selectedPin}
-          onSelect={(pin) => {
-            setSelectedPin(pin);
-            fetchSettings(pin);
-          }}
-        />
-
-        <AutoModeCard
-          isEnabled={settings.auto_mode}
-          onToggle={(val) => updateSetting('auto_mode', val, selectedPin)}
-        />
-
-        <SettingSlider
-          label="Durée d'irrigation"
-          icon="time-outline"
-          iconColor="#4A90E2"
-          value={settings.irrigation_duration / 60}
-          unit="min"
-          min={5}
-          max={60}
-          step={1}
-          onValueChange={React.useCallback((val: number) => updateSettingDebounced('irrigation_duration', val * 60, selectedPin), [updateSettingDebounced, selectedPin])}
-          formatValue={React.useCallback((val: number) => Math.round(val), [])}
-        />
-
-        <SettingSlider
-          label="Seuil de déclenchement (Humidité)"
-          icon="water-outline"
-          iconColor="#10B981"
-          value={settings.threshold_min}
-          unit="%"
-          min={0}
-          max={100}
-          step={1}
-          disabled={!settings.auto_mode}
-          onValueChange={React.useCallback((val: number) => updateSettingDebounced('threshold_min', val, selectedPin), [updateSettingDebounced, selectedPin])}
-          formatValue={React.useCallback((val: number) => Math.round(val), [])}
-        />
-
-        <SensorSelector
-          sensors={availableSensors}
-          selectedId={settings.sensor_id}
-          onSelect={(id) => updateSetting('sensor_id', id, selectedPin)}
-          disabled={!settings.auto_mode}
-        />
-
-        <View style={styles.experimentalSection}>
-          <View style={styles.experimentalHeader}>
-            <Text style={styles.sectionTitle}>PARAMÈTRES AVANCÉS</Text>
-            <View style={styles.betaBadge}>
-              <Text style={styles.betaText}>BÊTA</Text>
-            </View>
-          </View>
-          <Text style={styles.experimentalDesc}>L&apos;intervalle de scan impacte la consommation batterie du boîtier.</Text>
-          <SettingSlider
-            label="Intervalle de scan"
-            icon="wifi-outline"
-            iconColor="#9CA3AF"
-            value={settings.reporting_interval}
-            unit="sec"
-            min={10}
-            max={120}
-            step={5}
-            onValueChange={React.useCallback((val: number) => updateSettingDebounced('reporting_interval', val, selectedPin), [updateSettingDebounced, selectedPin])}
+          <ControllerCard
+            name={activeController.name}
+            onPress={() => activeController.id && router.push(`/controllers/${activeController.id}` as any)}
           />
-        </View>
 
-        <View style={styles.systemSection}>
-          <Text style={styles.sectionTitle}>SYSTÈME</Text>
-          <TouchableOpacity style={styles.manageBtn} onPress={() => router.push("/controllers" as any)}>
-            <View style={styles.manageBtnContent}>
-              <View style={styles.manageIconBox}>
-                <Ionicons name="swap-horizontal-outline" size={20} color={COLORS.green} />
-              </View>
-              <Text style={styles.manageBtnText}>Gérer mes boîtiers</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.systemSection}>
-          <Text style={styles.sectionTitle}>COMPTE</Text>
-          <TouchableOpacity style={[styles.manageBtn, { marginBottom: 12 }]} onPress={() => router.push("/(tabs)/profil" as any)}>
-            <View style={styles.manageBtnContent}>
-              <View style={styles.manageIconBox}>
-                <Ionicons name="person-outline" size={20} color={COLORS.green} />
-              </View>
-              <Text style={styles.manageBtnText}>Mon Profil</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.manageBtn, { borderColor: '#FEE2E2' }]} onPress={handleLogout}>
-            <View style={styles.manageBtnContent}>
-              <View style={[styles.manageIconBox, { backgroundColor: '#FEF2F2' }]}>
-                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-              </View>
-              <Text style={[styles.manageBtnText, { color: '#EF4444' }]}>Se déconnecter</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#EF4444" opacity={0.5} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoIconBox}>
-            <Ionicons name="shield-checkmark-outline" size={24} color={COLORS.green} />
+          <View style={{ marginBottom: 12 }}>
+            <ActuatorSelector
+              actuators={actuators}
+              selectedPin={selectedPin}
+              onSelect={(pin) => {
+                setSelectedPin(pin);
+                fetchSettings(pin);
+              }}
+            />
           </View>
-          <View>
-            <Text style={styles.infoTitle}>Smart Orchard v1.2.5</Text>
-            <Text style={styles.infoSub}>Multi-actuateurs activé • Agrotech ML</Text>
+
+          <SettingsGroup title="Configuration de l'Arrosage">
+            <SettingSlider
+              label="Durée d'irrigation par session"
+              icon="time-outline"
+              iconColor="#4A90E2"
+              value={settings.irrigation_duration / 60}
+              unit="min"
+              min={5}
+              max={60}
+              step={1}
+              borderless
+              onValueChange={handleDurationChange}
+              formatValue={formatRoundValue}
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title="Automatisation Avancée">
+            <AutoModeCard
+              isEnabled={settings.auto_mode}
+              borderless
+              onToggle={handleAutoToggle}
+            />
+            {settings.auto_mode ? (
+              <SettingSlider
+                label="Seuil de déclenchement d'humidité"
+                icon="water-outline"
+                iconColor="#10B981"
+                value={settings.threshold_min}
+                unit="%"
+                min={0}
+                max={100}
+                step={1}
+                borderless
+                onValueChange={handleThresholdChange}
+                formatValue={formatRoundValue}
+              />
+            ) : null}
+            {settings.auto_mode ? (
+              <SensorSelector
+                sensors={availableSensors}
+                selectedId={settings.sensor_id}
+                borderless
+                onSelect={handleSensorSelect}
+              />
+            ) : null}
+          </SettingsGroup>
+
+          <SettingsGroup title="Paramètres Techniques">
+            <View style={styles.experimentalHeader}>
+              <Ionicons name="flash-outline" size={16} color="#9CA3AF" />
+              <Text style={styles.experimentalDesc}>L'intervalle de scan impacte la consommation batterie.</Text>
+            </View>
+            <SettingSlider
+              label="Intervalle de scan de l'antenne"
+              icon="wifi-outline"
+              iconColor="#9CA3AF"
+              value={settings.reporting_interval}
+              unit="sec"
+              min={10}
+              max={120}
+              step={5}
+              borderless
+              onValueChange={handleReportingChange}
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title="Compte & Application">
+            <TouchableOpacity style={styles.manageBtnBody} onPress={() => router.push("/controllers" as any)}>
+              <View style={styles.manageBtnContent}>
+                <View style={styles.manageIconBox}>
+                  <Ionicons name="swap-horizontal-outline" size={20} color={COLORS.green} />
+                </View>
+                <Text style={styles.manageBtnText}>Gérer mes boîtiers</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.manageBtnBody} onPress={() => router.push("/(tabs)/profil" as any)}>
+              <View style={styles.manageBtnContent}>
+                <View style={styles.manageIconBox}>
+                  <Ionicons name="person-outline" size={20} color={COLORS.green} />
+                </View>
+                <Text style={styles.manageBtnText}>Mon Profil</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.manageBtnBody} onPress={handleLogout}>
+              <View style={styles.manageBtnContent}>
+                <View style={[styles.manageIconBox, { backgroundColor: '#FEF2F2' }]}>
+                  <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                </View>
+                <Text style={[styles.manageBtnText, { color: '#EF4444' }]}>Se déconnecter</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#EF4444" opacity={0.5} />
+            </TouchableOpacity>
+          </SettingsGroup>
+
+          <View style={styles.infoCard}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.green} />
+            <Text style={styles.infoSub}>Smart Orchard v1.3.0 • Agrotech ML Secured Edition</Text>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -286,51 +309,18 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F5F0EB" },
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20, paddingBottom: 40 },
-  pageTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#8E8E93",
-    letterSpacing: 1.2,
-    marginBottom: 20,
-    textTransform: 'uppercase',
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#8E8E93",
-    letterSpacing: 1.2,
-    marginBottom: 16,
-    textTransform: 'uppercase',
-  },
-  experimentalSection: {
-    backgroundColor: '#F9FAFB', borderRadius: 24, padding: 24, marginBottom: 32,
-    borderWidth: 1, borderColor: '#F0EAE4', borderStyle: 'dashed',
-  },
-  experimentalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  experimentalDesc: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 20, fontStyle: 'italic', fontWeight: '500' },
-  betaBadge: { backgroundColor: '#E5E7EB', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  betaText: { fontSize: 9, fontWeight: '900', color: '#6B7280' },
-  systemSection: { marginTop: 8, marginBottom: 32 },
-  manageBtn: {
+  experimentalHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingHorizontal: 4 },
+  experimentalDesc: { fontSize: 13, color: COLORS.textSecondary, fontStyle: 'italic', fontWeight: '500' },
+  manageBtnBody: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: COLORS.card, padding: 20, borderRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.02)',
-    shadowColor: "#000", shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04, shadowRadius: 16, elevation: 4,
+    paddingVertical: 12,
   },
   manageBtnContent: { flexDirection: "row", alignItems: "center", gap: 12 },
   manageIconBox: {
-    width: 44, height: 44, backgroundColor: "#EFF6F1", borderRadius: 14,
+    width: 40, height: 40, backgroundColor: "#EFF6F1", borderRadius: 12,
     alignItems: "center", justifyContent: "center",
   },
   manageBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.textPrimary },
-  infoCard: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 8, opacity: 0.8, marginTop: 16 },
-  infoIconBox: {
-    width: 48, height: 48, borderRadius: 14,
-    backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center',
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
-  infoTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
-  infoSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
+  infoCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, opacity: 0.6, marginTop: 10, justifyContent: 'center' },
+  infoSub: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '700' },
 });

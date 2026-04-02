@@ -13,18 +13,23 @@ interface SensorSelectorProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   disabled?: boolean;
+  borderless?: boolean;
 }
 
 export const SensorSelector: React.FC<SensorSelectorProps> = ({
   sensors,
   selectedId,
   onSelect,
-  disabled
+  disabled,
+  borderless = false
 }) => {
   return (
-    <View style={styles.sectionCard}>
+    <View style={[
+      styles.sectionCard,
+      borderless && styles.borderlessCard
+    ]}>
       <View style={styles.sectionHeader}>
-        <Ionicons name="link-outline" size={20} color={COLORS.green} />
+        {!borderless && <Ionicons name="link-outline" size={20} color={COLORS.green} />}
         <Text style={styles.sectionTitle}>Capteur de référence</Text>
       </View>
       <Text style={styles.sectionSub}>Capteur qui pilotera cet équipement</Text>
@@ -67,6 +72,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.02)',
   },
+  borderlessCard: {
+    backgroundColor: 'transparent',
+    padding: 0,
+    marginBottom: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   sectionTitle: {
     fontSize: 12,
@@ -75,7 +88,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  sectionSub: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 20, fontWeight: '600' },
+  sectionSub: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 16, fontWeight: '600' },
   sensorList: { marginHorizontal: -4 },
   sensorChip: {
     paddingHorizontal: 16, paddingVertical: 10,

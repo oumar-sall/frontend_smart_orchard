@@ -6,11 +6,15 @@ import { COLORS } from './constants';
 interface AutoModeCardProps {
   isEnabled: boolean;
   onToggle: (val: boolean) => void;
+  borderless?: boolean;
 }
 
-export const AutoModeCard = ({ isEnabled, onToggle }: AutoModeCardProps) => {
+export const AutoModeCard = ({ isEnabled, onToggle, borderless = false }: AutoModeCardProps) => {
   return (
-    <View style={styles.autoModeCard}>
+    <View style={[
+      styles.autoModeCard,
+      borderless && styles.borderlessCard
+    ]}>
       <View style={styles.autoModeInfo}>
         <View style={[styles.iconBox, { backgroundColor: isEnabled ? '#EFF6F1' : '#F7F8F9' }]}>
           <Ionicons
@@ -51,6 +55,14 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.02)',
+  },
+  borderlessCard: {
+    backgroundColor: 'transparent',
+    padding: 0,
+    marginBottom: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   autoModeInfo: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
   iconBox: {

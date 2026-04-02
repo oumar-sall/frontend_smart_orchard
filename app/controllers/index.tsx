@@ -32,6 +32,7 @@ export default function ControllerListScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const fetchControllers = useCallback(async () => {
     setLoading(true);
@@ -74,17 +75,21 @@ export default function ControllerListScreen() {
     }
   };
 
-  const lookupImei = async () => {
-    if (!newController.imei) return;
+  const lookupImei = async (overrideImei?: string) => {
+    const imei = (overrideImei || newController.imei)?.trim();
+    if (!imei) return;
+    
     setSearchLoading(true);
     setFoundController(null);
+    setHasSearched(true);
     try {
       const token = await storage.getItem("userToken");
-      const response = await axios.get(`${API_URL}/controllers/search?imei=${newController.imei}`, {
+      const response = await axios.get(`${API_URL}/controllers/search?imei=${imei}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFoundController(response.data);
-      setNewController(prev => ({ ...prev, name: response.data.name }));
+      // On met à jour le champ avec l'IMEI nettoyé et le nom trouvé
+      setNewController(prev => ({ ...prev, imei, name: response.data.name }));
     } catch (error: any) {
       if (error.response?.status !== 404) {
         logger.error("Erreur lookup imei:", error);
@@ -127,8 +132,12 @@ export default function ControllerListScreen() {
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     setScanning(false);
-    setNewController(prev => ({ ...prev, imei: data }));
+    const cleanImei = data?.trim();
+    setNewController(prev => ({ ...prev, imei: cleanImei }));
     setModalVisible(true);
+    if (modalMode === 'join') {
+      lookupImei(cleanImei);
+    }
   };
 
   const startScanning = async () => {
@@ -239,6 +248,7 @@ export default function ControllerListScreen() {
                 onPress={() => {
                   setModalMode('join');
                   setFoundController(null);
+                  setHasSearched(false);
                 }}
               >
                 <Text style={[styles.modeBtnText, modalMode === 'join' && styles.modeBtnTextActive]}>Rejoindre</Text>
@@ -248,6 +258,7 @@ export default function ControllerListScreen() {
                 onPress={() => {
                   setModalMode('create');
                   setFoundController(null);
+                  setHasSearched(false);
                 }}
               >
                 <Text style={[styles.modeBtnText, modalMode === 'create' && styles.modeBtnTextActive]}>Nouveau</Text>
@@ -269,8 +280,11 @@ export default function ControllerListScreen() {
                 placeholder="IMEI"
                 keyboardType="numeric"
                 value={newController.imei}
-                onChangeText={(text) => setNewController(prev => ({ ...prev, imei: text }))}
-                onBlur={modalMode === 'join' ? lookupImei : undefined}
+                onChangeText={(text) => {
+                  setNewController(prev => ({ ...prev, imei: text }));
+                  setHasSearched(false); // Réinitialiser si l'utilisateur modifie manuellement
+                }}
+                onBlur={modalMode === 'join' ? () => lookupImei() : undefined}
               />
               <TouchableOpacity style={styles.scanBtnInside} onPress={startScanning}>
                 <Ionicons name="qr-code-outline" size={24} color={COLORS.green} />
@@ -286,7 +300,7 @@ export default function ControllerListScreen() {
                     <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
                     <Text style={styles.foundText}>Boîtier trouvé : {foundController.name}</Text>
                   </View>
-                ) : newController.imei.length > 5 ? (
+                ) : (newController.imei.length > 5 && hasSearched) ? (
                   <Text style={styles.notFoundText}>Aucun boîtier correspondant</Text>
                 ) : null}
               </View>
