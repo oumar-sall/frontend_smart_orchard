@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -112,8 +112,7 @@ export default function ManageControllerScreen() {
               });
               const activeId = await storage.getItem('selectedControllerId');
               if (activeId === id) {
-                await storage.deleteItem('selectedControllerId');
-                await storage.deleteItem('selectedControllerName');
+                await storage.clearControllerSelection();
               }
               Alert.alert("Succès", "Contrôleur supprimé avec succès");
               router.replace("/controllers" as any);
@@ -141,8 +140,7 @@ export default function ManageControllerScreen() {
   };
 
   const disconnect = async () => {
-    await storage.deleteItem('selectedControllerId');
-    await storage.deleteItem('selectedControllerName');
+    await storage.clearControllerSelection();
     setIsActive(false);
     router.replace("/controllers" as any);
   };
@@ -161,7 +159,8 @@ export default function ManageControllerScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
@@ -237,6 +236,7 @@ export default function ManageControllerScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -73,10 +73,7 @@ export default function ProfilScreen() {
       { 
         text: "Déconnexion", 
         onPress: async () => {
-          await storage.deleteItem('userToken');
-          await storage.deleteItem('userData');
-          await storage.deleteItem('selectedControllerId');
-          await storage.deleteItem('selectedControllerName');
+          await storage.clearAll();
           router.replace('/login');
         }
       }
@@ -163,7 +160,8 @@ export default function ProfilScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
           <View style={styles.avatarLarge}>
             <Ionicons name="person" size={48} color={COLORS.green} />
@@ -255,6 +253,7 @@ export default function ProfilScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

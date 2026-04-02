@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -44,7 +44,7 @@ export default function ControllerListScreen() {
     } catch (error: any) {
       logger.error("Erreur récup controllers:", error);
       if (error.response?.status === 401 || error.response?.status === 403) {
-        await storage.deleteItem("userToken");
+        await storage.clearAll();
         router.replace("/login");
       } else {
         Alert.alert("Erreur", "Impossible de charger les contrôleurs");
@@ -227,8 +227,10 @@ export default function ControllerListScreen() {
           setFoundController(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalView}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Ajouter un Contrôleur</Text>
 
             <View style={styles.modeToggle}>
@@ -322,8 +324,10 @@ export default function ControllerListScreen() {
                 <Text style={styles.addText}>{modalMode === 'create' ? "Créer" : "Rejoindre"}</Text>
               </TouchableOpacity>
             </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* MODAL SCANNER */}

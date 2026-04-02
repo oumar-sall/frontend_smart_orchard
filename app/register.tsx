@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Switch, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { logger } from '../shared/logger';
@@ -64,7 +64,8 @@ export default function RegisterScreen() {
                 style={styles.container} 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                 <View style={styles.header}>
                     <Text style={styles.title}>Bienvenue !</Text>
                     <Text style={styles.subtitle}>Complétez votre profil pour continuer</Text>
@@ -118,6 +119,7 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
         </SafeAreaView>
     );
