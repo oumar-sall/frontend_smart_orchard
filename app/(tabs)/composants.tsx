@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -72,6 +72,15 @@ export default function ComposantsScreen() {
   const [newMaxValue, setNewMaxValue] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
+  const [editingComponentId, setEditingComponentId] = useState<string | null>(null);
+
+  const usedPins = React.useMemo(() => {
+    const pins = new Set<string>();
+    sensors.forEach(s => { if (s.id !== editingComponentId) pins.add(s.pin_number); });
+    actuators.forEach(a => { if (a.id !== editingComponentId) pins.add(a.pin_number); });
+    return pins;
+  }, [sensors, actuators, editingComponentId]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -95,7 +104,22 @@ export default function ComposantsScreen() {
     fetchData();
   }, [fetchData]);
 
-  const handleAddComponent = async () => {
+  const handleStartEdit = (item: any) => {
+    setEditingComponentId(item.id);
+    setNewLabel(item.label || "");
+    setNewPin(item.pin_number || "");
+    setNewUnit(item.unit || "");
+    setNewMinValue(item.min_value?.toString() || "");
+    setNewMaxValue(item.max_value?.toString() || "");
+    
+    // Auto-detect template if possible (simple heuristic)
+    const t = SENSOR_TEMPLATES.find(tmp => tmp.label === item.label);
+    setSelectedTemplate(t ? t.id : null);
+    
+    setModalVisible(true);
+  };
+
+  const handleSaveComponent = async () => {
     if (!newLabel.trim() || !newPin.trim()) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires.");
       return;
@@ -103,29 +127,37 @@ export default function ComposantsScreen() {
 
     try {
       const controllerId = await storage.getItem('selectedControllerId');
-      
-      await axios.post(`${API_URL}/readings/components`, {
-        type: activeTab === 'capteurs' ? 'sensor' : 'actuator',
+      const data = {
         label: newLabel,
         pin_number: newPin,
         unit: newUnit || undefined,
         min_value: newMinValue ? parseFloat(newMinValue) : undefined,
         max_value: newMaxValue ? parseFloat(newMaxValue) : undefined,
         controller_id: controllerId
-      });
+      };
+
+      if (editingComponentId) {
+        await axios.put(`${API_URL}/readings/components/${editingComponentId}`, data);
+      } else {
+        await axios.post(`${API_URL}/readings/components`, {
+          ...data,
+          type: activeTab === 'capteurs' ? 'sensor' : 'actuator',
+        });
+      }
+
       setModalVisible(false);
+      setEditingComponentId(null);
       setNewLabel("");
       setNewPin("");
       setNewUnit("");
       setNewMinValue("");
       setNewMaxValue("");
 
-      // Navigate respectively to the end if desired, or let them just fetch data
       fetchData();
-      Alert.alert("Succès", "Composant ajouté avec succès");
+      Alert.alert("Succès", editingComponentId ? "Composant mis à jour" : "Composant ajouté");
     } catch (error: any) {
-      console.error("Erreur création composant:", error);
-      Alert.alert("Erreur", error?.response?.data?.error || "Impossible d'ajouter le composant");
+      console.error("Erreur sauvegarde composant:", error);
+      Alert.alert("Erreur", error?.response?.data?.error || "Impossible d'enregistrer le composant");
     }
   };
 
@@ -196,9 +228,14 @@ export default function ComposantsScreen() {
         <Text style={styles.itemName}>{item.label || "Capteur inconnu"}</Text>
         <Text style={styles.itemSub}>Pin: {item.pin_number || "N/A"}</Text>
       </View>
-      <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteComponent(item.id)}>
-        <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
-      </TouchableOpacity>
+      <View style={styles.itemActions}>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleStartEdit(item)}>
+          <Ionicons name="pencil-outline" size={20} color={COLORS.green} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteComponent(item.id)}>
+          <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -213,9 +250,14 @@ export default function ComposantsScreen() {
           <Text style={styles.itemName}>{item.label || "Actionneur inconnu"}</Text>
           <Text style={styles.itemSub}>Pin: {item.pin_number}</Text>
         </View>
-        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteComponent(item.id)}>
-          <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
-        </TouchableOpacity>
+        <View style={styles.itemActions}>
+          <TouchableOpacity style={styles.editButton} onPress={() => handleStartEdit(item)}>
+            <Ionicons name="pencil-outline" size={20} color={COLORS.green} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteComponent(item.id)}>
+            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -281,6 +323,7 @@ export default function ComposantsScreen() {
       {/* Floating Action Button */}
       {!loading && (
         <TouchableOpacity style={styles.fab} onPress={() => {
+          setEditingComponentId(null);
           setNewPin("");
           setNewLabel("");
           setNewUnit("");
@@ -293,12 +336,14 @@ export default function ComposantsScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Adding Component Modal */}
+      {/* Adding/Editing Component Modal */}
       <Modal visible={isModalVisible} transparent animationType="fade">
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              Ajouter un {activeTab === "capteurs" ? "capteur" : "actionneur"}
+              {editingComponentId ? "Modifier" : "Ajouter"} un {activeTab === "capteurs" ? "capteur" : "actionneur"}
             </Text>
 
             {activeTab === "capteurs" && (
@@ -376,17 +421,30 @@ export default function ComposantsScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Sélectionnez le Pin</Text>
               <ScrollView style={styles.pinScroll} contentContainerStyle={styles.pinGrid}>
-                {(activeTab === "capteurs" ? SENSOR_PINS : ACTUATOR_PINS).map(pin => (
-                  <TouchableOpacity
-                    key={pin.value}
-                    style={[styles.pinChip, newPin === pin.value && styles.pinChipSelected]}
-                    onPress={() => setNewPin(pin.value)}
-                  >
-                    <Text style={[styles.pinChipText, newPin === pin.value && styles.pinChipTextSelected]}>
-                      {pin.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {(activeTab === "capteurs" ? SENSOR_PINS : ACTUATOR_PINS).map(pin => {
+                  const isUsed = usedPins.has(pin.value);
+                  return (
+                    <TouchableOpacity
+                      key={pin.value}
+                      style={[
+                        styles.pinChip, 
+                        newPin === pin.value && styles.pinChipSelected,
+                        isUsed && styles.pinChipDisabled
+                      ]}
+                      onPress={() => !isUsed && setNewPin(pin.value)}
+                      disabled={isUsed && newPin !== pin.value}
+                    >
+                      <Text style={[
+                        styles.pinChipText, 
+                        newPin === pin.value && styles.pinChipTextSelected,
+                        isUsed && styles.pinChipTextDisabled
+                      ]}>
+                        {pin.label}
+                      </Text>
+                      {isUsed && <Ionicons name="lock-closed" size={12} color={COLORS.textSecondary} style={{ marginLeft: 4 }} />}
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
@@ -394,12 +452,16 @@ export default function ComposantsScreen() {
               <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalButtonTextCancel}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleAddComponent}>
-                <Text style={styles.modalButtonTextSubmit}>Ajouter</Text>
+              <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleSaveComponent}>
+                <Text style={styles.modalButtonTextSubmit}>
+                  {editingComponentId ? "Enregistrer" : "Ajouter"}
+                </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
 
     </SafeAreaView>
@@ -472,6 +534,11 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
   },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   itemName: {
     fontSize: 16,
     fontWeight: "800",
@@ -482,6 +549,11 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 4,
     fontWeight: '600',
+  },
+  editButton: {
+    padding: 10,
+    backgroundColor: "#EFF6F1",
+    borderRadius: 12,
   },
   deleteButton: {
     padding: 10,
@@ -613,10 +685,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderWidth: 1,
     borderColor: "#F0EAE4",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   pinChipSelected: {
     backgroundColor: COLORS.green,
     borderColor: COLORS.green,
+  },
+  pinChipDisabled: {
+    backgroundColor: "#EEE",
+    borderColor: "#DDD",
+    opacity: 0.6,
   },
   pinChipText: {
     fontSize: 13,
@@ -625,6 +705,9 @@ const styles = StyleSheet.create({
   },
   pinChipTextSelected: {
     color: "#FFF",
+  },
+  pinChipTextDisabled: {
+    color: "#999",
   },
   modalButtons: {
     flexDirection: "row",

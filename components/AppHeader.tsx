@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import * as Location from "expo-location";
 import axios from "axios";
-import * as SecureStore from 'expo-secure-store';
+import { storage } from "@/utils/storage";
 import { API_URL } from "@/constants/Api";
 
 const COLORS = {
@@ -20,13 +20,17 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
 
   const fetchStatus = async () => {
     try {
-      const controllerId = await SecureStore.getItemAsync('selectedControllerId');
+      const controllerId = await storage.getItem('selectedControllerId');
+      if (!controllerId) {
+        setIsOnline(false);
+        return;
+      }
       const response = await axios.get(`${API_URL}/readings/status`, {
         params: { controller_id: controllerId }
       });
       setIsOnline(response.data.online);
-    } catch (error) {
-      console.warn("Erreur status Header:", error);
+    } catch {
+      // Ne pas logger en console.warn pour éviter le bruit au logout
       setIsOnline(false);
     }
   };
