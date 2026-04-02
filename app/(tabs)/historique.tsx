@@ -7,6 +7,7 @@ import { storage } from "@/utils/storage";
 import AppHeader from "../../components/AppHeader";
 import HistoryCard from "../../components/HistoryCard";
 import ActivityLogCard from "../../components/ActivityLogCard";
+import HistoryChart from "../../components/HistoryChart";
 import { API_URL } from "@/constants/Api";
 
 const { width } = Dimensions.get('window');
@@ -35,13 +36,13 @@ function SummaryCard({ title, value, unit, icon, color }: { title: string, value
   );
 }
 
-export default function HistoriqueScreen() {
+function HistoriqueScreen() {
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [averages, setAverages] = useState({ temp: '--', hum: '--', ph: '--' });
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>('week');
-  const [viewMode, setViewMode] = useState<'data' | 'logs'>('data');
+  const [viewMode, setViewMode] = useState<'data' | 'logs' | 'charts'>('data');
   const [currentPage, setCurrentPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
   const [totalLogPages, setTotalLogPages] = useState(1);
@@ -74,7 +75,7 @@ export default function HistoriqueScreen() {
     } catch (error) {
       console.error("Erreur récupération historique: ", error);
     } finally {
-      if (viewMode === 'data') setLoading(false);
+      if (viewMode !== 'logs') setLoading(false);
     }
   }, [selectedPeriod, viewMode]);
 
@@ -108,6 +109,16 @@ export default function HistoriqueScreen() {
     fetchActivityLogs();
   }, [fetchActivityLogs]);
 
+  const humChartData = historyData.map(d => ({
+    value: d.avgHumidity === '--' ? 0 : d.avgHumidity,
+    label: d.displayDate.split(' ')[0], 
+  }));
+
+  const tempChartData = historyData.map(d => ({
+    value: d.avgTemperature === '--' ? 0 : d.avgTemperature,
+    label: d.displayDate.split(' ')[0],
+  }));
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
@@ -126,10 +137,13 @@ export default function HistoriqueScreen() {
             style={[styles.viewToggleBtn, viewMode === 'data' && styles.viewToggleBtnActive]}
             onPress={() => setViewMode('data')}
           >
-            {viewMode !== 'data' && (
-              <Ionicons name="stats-chart" size={14} color="#717171" style={{ marginRight: 6 }} />
-            )}
             <Text style={viewMode === 'data' ? styles.viewToggleTextActive : styles.viewToggleText}>Données</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.viewToggleBtn, viewMode === 'charts' && styles.viewToggleBtnActive]}
+            onPress={() => setViewMode('charts')}
+          >
+            <Text style={viewMode === 'charts' ? styles.viewToggleTextActive : styles.viewToggleText}>Graphes</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.viewToggleBtn, viewMode === 'logs' && styles.viewToggleBtnActive]}
@@ -138,14 +152,11 @@ export default function HistoriqueScreen() {
               setLogPage(1);
             }}
           >
-            {viewMode !== 'logs' && (
-              <Ionicons name="list" size={16} color="#717171" style={{ marginRight: 6 }} />
-            )}
             <Text style={viewMode === 'logs' ? styles.viewToggleTextActive : styles.viewToggleText}>Journal</Text>
           </TouchableOpacity>
         </View>
 
-        {viewMode === 'data' && (
+        {(viewMode === 'data' || viewMode === 'charts') && (
           <View style={styles.summaryRow}>
             <SummaryCard
               title="MOY. HUMID."
@@ -172,7 +183,7 @@ export default function HistoriqueScreen() {
 
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>
-            {viewMode === 'data' ? 'RÉSUMÉ' : 'ACTIVITÉS'}
+            {viewMode === 'data' ? 'RÉSUMÉ' : viewMode === 'charts' ? 'STATISTIQUES' : 'ACTIVITÉS'}
           </Text>
           <TouchableOpacity 
             style={styles.sortButton}
@@ -190,7 +201,7 @@ export default function HistoriqueScreen() {
           <ActivityIndicator size="large" color={COLORS.green} style={{ marginTop: 40 }} />
         ) : (
           <>
-            {viewMode === 'data' ? (
+            {viewMode === 'data' && (
               <>
                 {historyData
                   .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
@@ -229,7 +240,28 @@ export default function HistoriqueScreen() {
                   </View>
                 )}
               </>
-            ) : (
+            )}
+
+            {viewMode === 'charts' && (
+              <View style={{ gap: 10 }}>
+                <HistoryChart 
+                  title="Humidité"
+                  data={humChartData}
+                  color="#4A90E2"
+                  unit="%"
+                  icon="water-outline"
+                />
+                <HistoryChart 
+                  title="Température"
+                  data={tempChartData}
+                  color="#F2994A"
+                  unit="°"
+                  icon="thermometer-outline"
+                />
+              </View>
+            )}
+
+            {viewMode === 'logs' && (
               <>
                 {activityLogs.map((log) => (
                   <ActivityLogCard
@@ -432,3 +464,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default HistoriqueScreen;
