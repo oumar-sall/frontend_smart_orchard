@@ -29,13 +29,13 @@ const SENSOR_PINS = [
   { value: "VOL 0", label: "VOL 0" },
   { value: "VOL 1", label: "VOL 1" },
   { value: "1-WIRE", label: "1-WIRE" },
-  { value: "485 A", label: "485 A (Température)" },
-  { value: "485 B", label: "485 B (Humidité)" },
+  { value: "485 A", label: "485 A" },
+  { value: "485 B", label: "485 B" },
 ];
 
 const ACTUATOR_PINS = [
-  { value: "OUT 0", label: "OUT 0 (Vanne 1)" },
-  { value: "OUT 1", label: "OUT 1 (Vanne 2)" },
+  { value: "OUT 0", label: "OUT 0" },
+  { value: "OUT 1", label: "OUT 1" },
   { value: "OUT 2", label: "OUT 2" },
   { value: "OUT 3", label: "OUT 3" },
 ];
@@ -111,11 +111,11 @@ export default function ComposantsScreen() {
     setNewUnit(item.unit || "");
     setNewMinValue(item.min_value?.toString() || "");
     setNewMaxValue(item.max_value?.toString() || "");
-    
+
     // Auto-detect template if possible (simple heuristic)
     const t = SENSOR_TEMPLATES.find(tmp => tmp.label === item.label);
     setSelectedTemplate(t ? t.id : null);
-    
+
     setModalVisible(true);
   };
 
@@ -342,122 +342,122 @@ export default function ComposantsScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingComponentId ? "Modifier" : "Ajouter"} un {activeTab === "capteurs" ? "capteur" : "actionneur"}
-            </Text>
-
-            {activeTab === "capteurs" && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Configuration rapide (Template)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templateList}>
-                  {SENSOR_TEMPLATES.map(t => (
-                    <TouchableOpacity 
-                      key={t.id} 
-                      style={[styles.templateChip, selectedTemplate === t.id && styles.templateChipSelected]}
-                      onPress={() => {
-                        setSelectedTemplate(t.id);
-                        setNewLabel(t.label);
-                        setNewUnit(t.unit);
-                        setNewMinValue(t.min.toString());
-                        setNewMaxValue(t.max.toString());
-                        setNewPin(t.pin);
-                      }}
-                    >
-                      <Ionicons name={t.icon as any} size={16} color={selectedTemplate === t.id ? '#FFF' : COLORS.green} />
-                      <Text style={[styles.templateChipText, selectedTemplate === t.id && styles.templateChipTextSelected]}>{t.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nom du composant</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: Vanne Verger Nord"
-                value={newLabel}
-                onChangeText={setNewLabel}
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            {activeTab === "capteurs" && (
-              <>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Unité de mesure</Text>
-                  <View style={styles.unitChips}>
-                    {COMMON_UNITS.map(u => (
-                      <TouchableOpacity 
-                        key={u} 
-                        style={[styles.unitChip, newUnit === u && styles.unitChipSelected]}
-                        onPress={() => setNewUnit(u)}
-                      >
-                        <Text style={[styles.unitChipText, newUnit === u && styles.unitChipTextSelected]}>{u}</Text>
-                      </TouchableOpacity>
-                    ))}
-                    <TextInput 
-                      style={[styles.input, { flex: 1, minWidth: 80, height: 38, paddingVertical: 0 }]} 
-                      placeholder="Autre..." 
-                      value={COMMON_UNITS.includes(newUnit) ? "" : newUnit} 
-                      onChangeText={setNewUnit} 
-                      placeholderTextColor={COLORS.textSecondary} 
-                    />
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.inputLabel}>Valeur Min</Text>
-                    <TextInput style={styles.input} placeholder="Ex: -10" keyboardType="numeric" value={newMinValue} onChangeText={setNewMinValue} placeholderTextColor={COLORS.textSecondary} />
-                  </View>
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.inputLabel}>Valeur Max</Text>
-                    <TextInput style={styles.input} placeholder="Ex: 50" keyboardType="numeric" value={newMaxValue} onChangeText={setNewMaxValue} placeholderTextColor={COLORS.textSecondary} />
-                  </View>
-                </View>
-              </>
-            )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Sélectionnez le Pin</Text>
-              <ScrollView style={styles.pinScroll} contentContainerStyle={styles.pinGrid}>
-                {(activeTab === "capteurs" ? SENSOR_PINS : ACTUATOR_PINS).map(pin => {
-                  const isUsed = usedPins.has(pin.value);
-                  return (
-                    <TouchableOpacity
-                      key={pin.value}
-                      style={[
-                        styles.pinChip, 
-                        newPin === pin.value && styles.pinChipSelected,
-                        isUsed && styles.pinChipDisabled
-                      ]}
-                      onPress={() => !isUsed && setNewPin(pin.value)}
-                      disabled={isUsed && newPin !== pin.value}
-                    >
-                      <Text style={[
-                        styles.pinChipText, 
-                        newPin === pin.value && styles.pinChipTextSelected,
-                        isUsed && styles.pinChipTextDisabled
-                      ]}>
-                        {pin.label}
-                      </Text>
-                      {isUsed && <Ionicons name="lock-closed" size={12} color={COLORS.textSecondary} style={{ marginLeft: 4 }} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalButtonTextCancel}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleSaveComponent}>
-                <Text style={styles.modalButtonTextSubmit}>
-                  {editingComponentId ? "Enregistrer" : "Ajouter"}
+                <Text style={styles.modalTitle}>
+                  {editingComponentId ? "Modifier" : "Ajouter"} un {activeTab === "capteurs" ? "capteur" : "actionneur"}
                 </Text>
-              </TouchableOpacity>
-            </View>
+
+                {activeTab === "capteurs" && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Configuration rapide (Template)</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templateList}>
+                      {SENSOR_TEMPLATES.map(t => (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={[styles.templateChip, selectedTemplate === t.id && styles.templateChipSelected]}
+                          onPress={() => {
+                            setSelectedTemplate(t.id);
+                            setNewLabel(t.label);
+                            setNewUnit(t.unit);
+                            setNewMinValue(t.min.toString());
+                            setNewMaxValue(t.max.toString());
+                            setNewPin(t.pin);
+                          }}
+                        >
+                          <Ionicons name={t.icon as any} size={16} color={selectedTemplate === t.id ? '#FFF' : COLORS.green} />
+                          <Text style={[styles.templateChipText, selectedTemplate === t.id && styles.templateChipTextSelected]}>{t.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Nom du composant</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: Vanne Verger Nord"
+                    value={newLabel}
+                    onChangeText={setNewLabel}
+                    placeholderTextColor={COLORS.textSecondary}
+                  />
+                </View>
+
+                {activeTab === "capteurs" && (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Unité de mesure</Text>
+                      <View style={styles.unitChips}>
+                        {COMMON_UNITS.map(u => (
+                          <TouchableOpacity
+                            key={u}
+                            style={[styles.unitChip, newUnit === u && styles.unitChipSelected]}
+                            onPress={() => setNewUnit(u)}
+                          >
+                            <Text style={[styles.unitChipText, newUnit === u && styles.unitChipTextSelected]}>{u}</Text>
+                          </TouchableOpacity>
+                        ))}
+                        <TextInput
+                          style={[styles.input, { flex: 1, minWidth: 80, height: 38, paddingVertical: 0 }]}
+                          placeholder="Autre..."
+                          value={COMMON_UNITS.includes(newUnit) ? "" : newUnit}
+                          onChangeText={setNewUnit}
+                          placeholderTextColor={COLORS.textSecondary}
+                        />
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.inputLabel}>Valeur Min</Text>
+                        <TextInput style={styles.input} placeholder="Ex: -10" keyboardType="numeric" value={newMinValue} onChangeText={setNewMinValue} placeholderTextColor={COLORS.textSecondary} />
+                      </View>
+                      <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.inputLabel}>Valeur Max</Text>
+                        <TextInput style={styles.input} placeholder="Ex: 50" keyboardType="numeric" value={newMaxValue} onChangeText={setNewMaxValue} placeholderTextColor={COLORS.textSecondary} />
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Sélectionnez le Pin</Text>
+                  <ScrollView style={styles.pinScroll} contentContainerStyle={styles.pinGrid}>
+                    {(activeTab === "capteurs" ? SENSOR_PINS : ACTUATOR_PINS).map(pin => {
+                      const isUsed = usedPins.has(pin.value);
+                      return (
+                        <TouchableOpacity
+                          key={pin.value}
+                          style={[
+                            styles.pinChip,
+                            newPin === pin.value && styles.pinChipSelected,
+                            isUsed && styles.pinChipDisabled
+                          ]}
+                          onPress={() => !isUsed && setNewPin(pin.value)}
+                          disabled={isUsed && newPin !== pin.value}
+                        >
+                          <Text style={[
+                            styles.pinChipText,
+                            newPin === pin.value && styles.pinChipTextSelected,
+                            isUsed && styles.pinChipTextDisabled
+                          ]}>
+                            {pin.label}
+                          </Text>
+                          {isUsed && <Ionicons name="lock-closed" size={12} color={COLORS.textSecondary} style={{ marginLeft: 4 }} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.modalButtonTextCancel}>Annuler</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleSaveComponent}>
+                    <Text style={styles.modalButtonTextSubmit}>
+                      {editingComponentId ? "Enregistrer" : "Ajouter"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>

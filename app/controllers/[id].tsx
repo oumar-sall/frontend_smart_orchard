@@ -22,6 +22,7 @@ export default function ManageControllerScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [controller, setController] = useState({ name: '', imei: '' });
+
   const [saving, setSaving] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [isActive, setIsActive] = useState(false);
@@ -57,7 +58,7 @@ export default function ManageControllerScreen() {
   useEffect(() => {
     fetchController();
     
-    // Vérifier si c'est le contrôleur actif
+    // Vérifier si c'est le contrôleur actif et charger l'user courant
     const checkActive = async () => {
       const activeId = await storage.getItem('selectedControllerId');
       setIsActive(activeId === id);
@@ -77,8 +78,9 @@ export default function ManageControllerScreen() {
     setSaving(true);
     try {
       const token = await storage.getItem("userToken");
-      // On n'envoie que le nom car l'IMEI n'est plus modifiable
-      await axios.put(`${API_URL}/controllers/${id}`, { name: controller.name }, {
+      const payload: any = { name: controller.name };
+
+      await axios.put(`${API_URL}/controllers/${id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Alert.alert("Succès", "Contrôleur mis à jour avec succès");
@@ -193,10 +195,11 @@ export default function ManageControllerScreen() {
               placeholder="Ex: Verger Sud"
             />
 
-            <Text style={styles.label}>IMEI (Lecture seule)</Text>
             <View style={[styles.input, styles.disabledInput]}>
               <Text style={styles.disabledInputText}>{controller.imei}</Text>
             </View>
+
+
 
             <TouchableOpacity 
               style={[styles.saveBtn, saving && styles.disabledBtn]} 
