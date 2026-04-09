@@ -1,88 +1,67 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Keyboard, TouchableWithoutFeedback, Modal, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../shared/logger';
 import { storage } from '../utils/storage';
+import { countries, defaultCountry, Country } from '../constants/Countries';
 
 import { API_URL } from '../constants/Api';
 
 export default function LoginScreen() {
     const router = useRouter();
     const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
-    const [step, setStep] = useState<'phone' | 'otp'>('phone');
     const [loading, setLoading] = useState(false);
+    const [selectedCountry, setSelectedCountry] = useState<Country>(defaultCountry);
+    const [isPickerVisible, setIsPickerVisible] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const handleSendOTP = async () => {
-        if (!phone || phone.length < 10) {
+    const filteredCountries = countries.filter(c => 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        c.callingCode.includes(searchQuery)
+    );
+
+    const handleLogin = async () => {
+        // Nettoyage du numéro : on ne garde que les chiffres
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        if (!cleanPhone || cleanPhone.length < 8) {
             Alert.alert('Erreur', 'Veuillez saisir un numéro de téléphone valide');
             return;
         }
 
+        const fullPhone = `${selectedCountry.callingCode}${cleanPhone}`;
+
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/auth/send-otp`, {
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone }),
+                body: JSON.stringify({ phone: fullPhone }),
             });
 
             if (response.ok) {
-                setStep('otp');
-                logger.info(`OTP envoyé pour ${phone}`);
-                Alert.alert("Code envoyé", "Le code de test est 123456 (Voir aussi votre terminal backend)");
-            } else {
                 const data = await response.json();
-                console.error("Réponse backend erronée:", data);
-                Alert.alert('Erreur', data.error || 'Impossible d\'envoyer le code');
-            }
-        } catch (err: any) {
-            console.error('ERREUR FETCH send-otp:', err);
-            logger.error('Erreur send-otp:', err);
-            Alert.alert('Erreur de connexion', 
-                `Impossible de contacter le serveur à ${API_URL}. \n\nErreur: ${err.message}\n\nVérifiez que le serveur tourne et que l'IP dans front/constants/Api.ts est correcte.`
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOTP = async () => {
-        if (!otp || otp.length < 6) {
-            Alert.alert('Erreur', 'Veuillez saisir le code à 6 chiffres');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_URL}/auth/verify-otp`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, otp }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Sauvegarder le token et les infos utilisateur
-                await storage.setItem('userToken', data.token);
-                await storage.setItem('userData', JSON.stringify(data.user));
                 
-                logger.info(`Connexion réussie pour ${phone}`);
-
-                if (data.isNewUser) {
-                    router.replace('/register');
-                } else {
-                    router.replace('/controllers' as any);
+                if (data.token) {
+                    await storage.setItem('userToken', data.token);
+                    await storage.setItem('userData', JSON.stringify(data.user));
+                    logger.info(`Connexion réussie pour ${fullPhone}`);
+                    
+                    if (!data.user.first_name || data.user.first_name === 'Nouveau') {
+                        router.replace('/register' as any);
+                    } else {
+                        router.replace('/controllers' as any);
+                    }
                 }
             } else {
-                Alert.alert('Erreur', data.error || 'Code incorrect');
+                const data = await response.json();
+                Alert.alert('Erreur', data.error || 'Impossible de se connecter');
             }
-        } catch (err) {
-            logger.error('Erreur verify-otp:', err);
-            Alert.alert('Erreur', 'Impossible de contacter le serveur');
+        } catch (err: any) {
+            logger.error('Erreur login:', err);
+            Alert.alert('Erreur', 'Impossible de contacter le serveur.');
         } finally {
             setLoading(false);
         }
@@ -105,67 +84,39 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.card}>
-                    {step === 'phone' ? (
-                        <>
-                            <Text style={styles.label}>Numéro de téléphone</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="+33612345678"
-                                    value={phone}
-                                    onChangeText={setPhone}
-                                    keyboardType="phone-pad"
-                                    autoFocus
-                                />
-                            </View>
-                            <Text style={styles.hint}>Utilisez le format international avec le +</Text>
-                            
-                            <TouchableOpacity 
-                                style={[styles.button, loading && styles.buttonDisabled]} 
-                                onPress={handleSendOTP}
-                                disabled={loading}
-                            >
-                                <Text style={styles.buttonText}>
-                                    {loading ? 'Envoi en cours...' : 'Recevoir le code'}
-                                </Text>
-                            </TouchableOpacity>
-                        </>
-                    ) : (
-                        <>
-                            <Text style={styles.label}>Code de vérification</Text>
-                            <View style={styles.inputContainer}>
-                                <Ionicons name="keypad-outline" size={20} color="#666" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="123456"
-                                    value={otp}
-                                    onChangeText={setOtp}
-                                    keyboardType="number-pad"
-                                    maxLength={6}
-                                    autoFocus
-                                />
-                            </View>
-                            <Text style={styles.hint}>Saisissez le code reçu (voir console backend)</Text>
-                            
-                            <TouchableOpacity 
-                                style={[styles.button, loading && styles.buttonDisabled]} 
-                                onPress={handleVerifyOTP}
-                                disabled={loading}
-                            >
-                                <Text style={styles.buttonText}>
-                                    {loading ? 'Vérification...' : 'Se connecter'}
-                                </Text>
-                            </TouchableOpacity>
+                    <Text style={styles.label}>Numero de telephone</Text>
+                    <View style={styles.inputWrapper}>
+                        <TouchableOpacity 
+                            style={styles.countryPickerBtn}
+                            onPress={() => setIsPickerVisible(true)}
+                        >
+                            <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                            <Text style={styles.callingCodeText}>{selectedCountry.callingCode}</Text>
+                            <Ionicons name="chevron-down" size={12} color="#666" />
+                        </TouchableOpacity>
 
-                            <TouchableOpacity 
-                                style={styles.secondaryButton} 
-                                onPress={() => setStep('phone')}
-                            >
-                                <Text style={styles.secondaryButtonText}>Changer de numéro</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+                        <View style={styles.divider} />
+
+                        <TextInput
+                            style={styles.phoneInput}
+                            placeholder="60000000"
+                            value={phone}
+                            onChangeText={(text) => setPhone(text.replace(/\D/g, ''))}
+                            keyboardType="phone-pad"
+                            autoFocus
+                        />
+                    </View>
+                    <Text style={styles.hint}>Votre numero sera converti au format : {selectedCountry.callingCode}{phone || '...'}</Text>
+
+                    <TouchableOpacity 
+                        style={[styles.button, (loading || phone.length < 8) && styles.buttonDisabled]} 
+                        onPress={handleLogin}
+                        disabled={loading || phone.length < 8}
+                    >
+                        <Text style={styles.buttonText}>
+                            {loading ? 'Connexion en cours...' : 'Se connecter'}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Bouton de secours pour vider le cache */}
@@ -185,6 +136,60 @@ export default function LoginScreen() {
             </ScrollView>
             </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
+
+            {/* Modal de sélection de pays */}
+            <Modal
+                visible={isPickerVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsPickerVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Choisir un pays</Text>
+                            <TouchableOpacity onPress={() => setIsPickerVisible(false)}>
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.searchContainer}>
+                            <Ionicons name="search" size={20} color="#999" />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Rechercher un pays ou code..."
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoCorrect={false}
+                            />
+                        </View>
+
+                        <FlatList
+                            data={filteredCountries}
+                            keyExtractor={(item) => item.code}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    style={styles.countryItem}
+                                    onPress={() => {
+                                        setSelectedCountry(item);
+                                        setIsPickerVisible(false);
+                                        setSearchQuery('');
+                                    }}
+                                >
+                                    <Text style={styles.itemFlag}>{item.flag}</Text>
+                                    <Text style={styles.itemName}>{item.name}</Text>
+                                    <Text style={styles.itemCode}>{item.callingCode}</Text>
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={
+                            <View style={styles.emptySearch}>
+                                <Text style={styles.emptyText}>Aucun pays trouvé</Text>
+                            </View>
+                            }
+                        />
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -229,68 +234,110 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 20,
+        borderRadius: 25,
         padding: 25,
-        elevation: 8,
+        elevation: 10,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.1,
-        shadowRadius: 15,
+        shadowRadius: 20,
     },
     label: {
         fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 10,
+        fontWeight: '700',
+        color: '#444',
+        marginBottom: 15,
     },
-    inputContainer: {
+    inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        height: 55,
-        backgroundColor: '#fafafa',
+        borderWidth: 1.5,
+        borderColor: '#eee',
+        borderRadius: 15,
+        paddingHorizontal: 12,
+        height: 60,
+        backgroundColor: '#f9f9f9',
     },
-    inputIcon: {
-        marginRight: 10,
+    countryPickerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingRight: 10,
     },
-    input: {
-        flex: 1,
-        fontSize: 18,
+    flagText: {
+        fontSize: 22,
+    },
+    callingCodeText: {
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#333',
     },
-    hint: {
-        fontSize: 12,
-        color: '#888',
-        marginTop: 8,
+    divider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#ddd',
+        marginHorizontal: 10,
+    },
+    phoneInput: {
+        flex: 1,
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#333',
+    },
+    otpHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    backBtn: {
+        marginRight: 10,
+        padding: 5,
+    },
+    otpSublabel: {
+        fontSize: 14,
+        color: '#666',
         marginBottom: 20,
+    },
+    debugBox: {
+        backgroundColor: '#FFF9C4',
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 15,
+        borderWidth: 1,
+        borderColor: '#FBC02D',
+    },
+    debugText: {
+        color: '#F57F17',
+        fontSize: 13,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    hint: {
+        fontSize: 13,
+        color: '#66bb6a',
+        marginTop: 10,
+        marginBottom: 20,
+        fontWeight: '500',
     },
     button: {
         backgroundColor: '#4CAF50',
-        height: 55,
-        borderRadius: 12,
+        height: 60,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 3,
+        elevation: 5,
+        shadowColor: '#4CAF50',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     buttonDisabled: {
-        backgroundColor: '#A5D6A7',
+        backgroundColor: '#B2DFDB',
     },
     buttonText: {
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
-    },
-    secondaryButton: {
-        marginTop: 15,
-        alignItems: 'center',
-    },
-    secondaryButtonText: {
-        color: '#666',
-        fontSize: 14,
-        textDecorationLine: 'underline',
     },
     resetCacheBtn: {
         marginTop: 40,
@@ -298,11 +345,81 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        opacity: 0.6,
+        opacity: 0.5,
     },
     resetCacheText: {
         color: '#999',
         fontSize: 13,
         fontWeight: '600',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        height: '80%',
+        paddingTop: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 25,
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f5f5f5',
+        marginHorizontal: 25,
+        borderRadius: 15,
+        paddingHorizontal: 15,
+        height: 50,
+        marginBottom: 15,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 16,
+    },
+    countryItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 15,
+        paddingHorizontal: 25,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    itemFlag: {
+        fontSize: 24,
+        marginRight: 15,
+    },
+    itemName: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    itemCode: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#666',
+    },
+    emptySearch: {
+        padding: 50,
+        alignItems: 'center',
+    },
+    emptyText: {
+        color: '#999',
+        fontSize: 16,
     }
 });

@@ -24,15 +24,15 @@ export default function ControllerListScreen() {
   const [controllers, setControllers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'join'>('join');
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [foundController, setFoundController] = useState<any | null>(null);
-  const [newController, setNewController] = useState({ name: '', imei: '', security_pin: '' });
+  const [newController, setNewController] = useState({ name: '', imei: '', join_otp: '' });
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
 
   const fetchControllers = useCallback(async () => {
     setLoading(true);
@@ -58,6 +58,16 @@ export default function ControllerListScreen() {
   useEffect(() => {
     fetchControllers();
   }, [fetchControllers]);
+
+  useEffect(() => {
+    let timer: any;
+    if (resendCountdown > 0) {
+      timer = setInterval(() => {
+        setResendCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,6 +100,17 @@ export default function ControllerListScreen() {
       setFoundController(response.data);
       // On met à jour le champ avec l'IMEI nettoyé et le nom trouvé
       setNewController(prev => ({ ...prev, imei, name: response.data.name }));
+      
+      if (response.data.sms_sent || response.data.debug_otp) {
+        setResendCountdown(60); // Attendre 1 min avant renvoi
+      }
+
+      if (response.data.sms_sent) {
+        Alert.alert("Sécurité", "Un code de vérification a été envoyé par SMS sur votre téléphone via le boîtier.");
+      } else if (response.data.debug_otp) {
+        // Mode dev sans boîtier : on affiche le code pour permettre le test
+        Alert.alert("Mode Développement", `Le boîtier est hors ligne. Utilisez ce code pour tester : ${response.data.debug_otp}`);
+      }
     } catch (error: any) {
       if (error.response?.status !== 404) {
         logger.error("Erreur lookup imei:", error);
@@ -101,13 +122,13 @@ export default function ControllerListScreen() {
   };
 
   const addController = async () => {
-    // Validation selon le mode
-    if (modalMode === 'create' && !newController.name) {
+    // Validation
+    if (!newController.name) {
       Alert.alert("Erreur", "Veuillez donner un nom au contrôleur");
       return;
     }
-    if (!newController.imei || !newController.security_pin) {
-      Alert.alert("Erreur", "IMEI et PIN de sécurité requis");
+    if (!newController.imei) {
+      Alert.alert("Erreur", "IMEI requis");
       return;
     }
 
@@ -118,10 +139,10 @@ export default function ControllerListScreen() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setModalVisible(false);
-      setNewController({ name: '', imei: '', security_pin: '' });
+      setNewController({ name: '', imei: '', join_otp: '' });
       setFoundController(null);
       fetchControllers();
-      Alert.alert("Succès", modalMode === 'create' ? "Contrôleur créé" : "Contrôleur rejoint");
+      Alert.alert("Succès", foundController?.is_new ? "Contrôleur créé" : "Contrôleur rejoint");
     } catch (error: any) {
       logger.error("Erreur ajout controller:", error);
       Alert.alert("Erreur", error.response?.data?.error || "Impossible d'opérer");
@@ -135,7 +156,7 @@ export default function ControllerListScreen() {
     const cleanImei = data?.trim();
     setNewController(prev => ({ ...prev, imei: cleanImei }));
     setModalVisible(true);
-    if (modalMode === 'join') {
+    if (cleanImei) {
       lookupImei(cleanImei);
     }
   };
@@ -242,83 +263,92 @@ export default function ControllerListScreen() {
               <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Ajouter un Contrôleur</Text>
 
-            <View style={styles.modeToggle}>
-              <TouchableOpacity 
-                style={[styles.modeBtn, modalMode === 'join' && styles.modeBtnActive]}
-                onPress={() => {
-                  setModalMode('join');
-                  setFoundController(null);
-                  setHasSearched(false);
-                }}
-              >
-                <Text style={[styles.modeBtnText, modalMode === 'join' && styles.modeBtnTextActive]}>Rejoindre</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modeBtn, modalMode === 'create' && styles.modeBtnActive]}
-                onPress={() => {
-                  setModalMode('create');
-                  setFoundController(null);
-                  setHasSearched(false);
-                }}
-              >
-                <Text style={[styles.modeBtnText, modalMode === 'create' && styles.modeBtnTextActive]}>Nouveau</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {modalMode === 'create' && (
-              <TextInput
-                style={styles.input}
-                placeholder="Nom du contrôleur (ex: Verger Nord)"
-                value={newController.name}
-                onChangeText={(text) => setNewController(prev => ({ ...prev, name: text }))}
-              />
-            )}
-            
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.inputInContainer}
-                placeholder="IMEI"
+                placeholder="Entrez l&apos;IMEI du boitier"
                 keyboardType="numeric"
                 value={newController.imei}
                 onChangeText={(text) => {
                   setNewController(prev => ({ ...prev, imei: text }));
-                  setHasSearched(false); // Réinitialiser si l'utilisateur modifie manuellement
+                  setFoundController(null);
+                  setHasSearched(false);
                 }}
-                onBlur={modalMode === 'join' ? () => lookupImei() : undefined}
+                onBlur={() => lookupImei()}
               />
               <TouchableOpacity style={styles.scanBtnInside} onPress={startScanning}>
                 <Ionicons name="qr-code-outline" size={24} color={COLORS.green} />
               </TouchableOpacity>
             </View>
 
-            {modalMode === 'join' && (
-              <View style={styles.lookupResult}>
-                {searchLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.green} />
-                ) : foundController ? (
+            {searchLoading && (
+              <ActivityIndicator size="small" color={COLORS.green} style={{ marginBottom: 15 }} />
+            )}
+
+            {foundController && (
+              <>
+                {foundController.is_new ? (
+                  <View style={styles.foundInfo}>
+                    <Ionicons name="sparkles-outline" size={16} color={COLORS.green} />
+                    <Text style={styles.foundText}>Nouveau boitier détecté en ligne !</Text>
+                  </View>
+                ) : (
                   <View style={styles.foundInfo}>
                     <Ionicons name="checkmark-circle" size={16} color={COLORS.green} />
-                    <Text style={styles.foundText}>Boîtier trouvé : {foundController.name}</Text>
+                    <Text style={styles.foundText}>Boitier existant trouvé : {foundController.name}</Text>
                   </View>
-                ) : (newController.imei.length > 5 && hasSearched) ? (
-                  <Text style={styles.notFoundText}>Aucun boîtier correspondant</Text>
-                ) : null}
+                )}
+
+                <View style={[styles.inputContainer, { marginTop: 15 }]}>
+                  <TextInput
+                    style={styles.inputInContainer}
+                    placeholder="Nom du contrôleur (ex: Verger Nord)"
+                    value={newController.name}
+                    onChangeText={(text) => setNewController(prev => ({ ...prev, name: text }))}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.inputInContainer}
+                    placeholder="Code SMS à 6 chiffres"
+                    keyboardType="numeric"
+                    maxLength={6}
+                    value={newController.join_otp}
+                    onChangeText={(text) => setNewController(prev => ({ ...prev, join_otp: text }))}
+                  />
+                  <View style={styles.pinIconContainer}>
+                    <Ionicons name="chatbubble-ellipses-outline" size={24} color={COLORS.green} />
+                  </View>
+                </View>
+
+                <View style={styles.resendContainer}>
+                  {resendCountdown > 0 ? (
+                    <Text style={styles.resendText}>
+                      Renvoyer le code dans {Math.floor(resendCountdown / 60)}:{(resendCountdown % 60).toString().padStart(2, '0')}
+                    </Text>
+                  ) : (
+                    <TouchableOpacity onPress={() => lookupImei()}>
+                      <Text style={styles.resendBtnText}>Je n&apos;ai pas reçu le code (Renvoyer)</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
+
+            {!foundController && hasSearched && !searchLoading && (
+              <View style={styles.notFoundContainer}>
+                <Ionicons name="cloud-offline-outline" size={32} color={COLORS.danger} />
+                <Text style={styles.notFoundText}>
+                   Boitier introuvable ou hors ligne. 
+                </Text>
+                <Text style={styles.notFoundSubtext}>
+                  Vérifiez l&apos;IMEI ou assurez-vous que le boîtier est allumé et connecté.
+                </Text>
               </View>
             )}
-            
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.inputInContainer}
-                placeholder="PIN de sécurité (ex: 123456)"
-                keyboardType="numeric"
-                secureTextEntry
-                value={newController.security_pin}
-                onChangeText={(text) => setNewController(prev => ({ ...prev, security_pin: text }))}
-              />
-              <View style={styles.pinIconContainer}>
-                <Ionicons name="lock-closed-outline" size={24} color={COLORS.green} />
-              </View>
-            </View>
+
+
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
@@ -326,16 +356,17 @@ export default function ControllerListScreen() {
                 onPress={() => {
                   setModalVisible(false);
                   setFoundController(null);
+                  setNewController({ name: '', imei: '', join_otp: '' });
                 }}
               >
                 <Text style={styles.cancelText}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.button, styles.addBtn, (modalMode === 'join' && !foundController) && styles.buttonDisabled]} 
+                style={[styles.button, styles.addBtn, !foundController && styles.buttonDisabled]} 
                 onPress={addController}
-                disabled={modalMode === 'join' && !foundController}
+                disabled={!foundController}
               >
-                <Text style={styles.addText}>{modalMode === 'create' ? "Créer" : "Rejoindre"}</Text>
+                <Text style={styles.addText}>{foundController?.is_new ? "Créer" : "Rejoindre"}</Text>
               </TouchableOpacity>
             </View>
               </View>
@@ -508,6 +539,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  resendContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  resendText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontStyle: "italic",
+  },
+  resendBtnText: {
+    fontSize: 14,
+    color: COLORS.green,
+    fontWeight: "bold",
+    textDecorationLine: "underline",
+  },
   pinIconContainer: {
     padding: 10,
     marginLeft: 5,
@@ -566,11 +613,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  notFoundText: {
-    color: COLORS.danger,
-    fontSize: 12,
-    textAlign: "center",
-  },
+
   buttonDisabled: {
     backgroundColor: COLORS.inactive,
     opacity: 0.6,
@@ -633,5 +676,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#4CAF50',
     backgroundColor: 'transparent',
+  },
+  notFoundContainer: {
+    alignItems: 'center',
+    padding: 20,
+    width: '100%',
+  },
+  notFoundText: {
+    color: COLORS.danger,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  notFoundSubtext: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 5,
   },
 });
