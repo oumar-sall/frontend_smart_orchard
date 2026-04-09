@@ -247,10 +247,10 @@ export default function ParametresScreen() {
           <SettingsGroup title="Paramètres Techniques">
             <View style={styles.experimentalHeader}>
               <Ionicons name="flash-outline" size={16} color="#9CA3AF" />
-              <Text style={styles.experimentalDesc}>L'intervalle de scan impacte la consommation batterie.</Text>
+              <Text style={styles.experimentalDesc}>L&apos;intervalle de scan impacte la consommation batterie.</Text>
             </View>
             <SettingSlider
-              label="Intervalle de scan de l'antenne"
+              label="Intervalle de scan de l&apos;antenne"
               icon="wifi-outline"
               iconColor="#9CA3AF"
               value={settings.reporting_interval}
