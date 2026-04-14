@@ -176,10 +176,11 @@ const getSensorColor = (value: number, unit: string, min: number, max: number) =
 };
 
 const getSensorLabel = (label: string, unit: string) => {
+  if (label) return label; // Respect the user-defined label
   if (unit === '°C') return "Température";
   if (unit === '%') return "Humidité";
   if (unit === 'pH') return "pH";
-  return label || "Capteur";
+  return "Capteur";
 };
 
 export default function DashboardScreen() {
