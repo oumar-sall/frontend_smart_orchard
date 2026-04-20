@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { storage } from "@/utils/storage";
+import api from "@/utils/api";
 import AppHeader from "../../components/AppHeader";
-import { API_URL } from "@/constants/Api";
 
 const COLORS = {
   background: "#F5F0EB",
@@ -88,8 +87,8 @@ export default function ComposantsScreen() {
       const params = { controller_id: controllerId };
 
       const [resSensors, resActuators] = await Promise.all([
-        axios.get(`${API_URL}/readings/sensors`, { params }),
-        axios.get(`${API_URL}/readings/actuators`, { params })
+        api.get(`/readings/sensors`, { params }),
+        api.get(`/readings/actuators`, { params })
       ]);
       setSensors(resSensors.data || []);
       setActuators(resActuators.data || []);
@@ -137,9 +136,9 @@ export default function ComposantsScreen() {
       };
 
       if (editingComponentId) {
-        await axios.put(`${API_URL}/readings/components/${editingComponentId}`, data);
+        await api.put(`/readings/components/${editingComponentId}`, data);
       } else {
-        await axios.post(`${API_URL}/readings/components`, {
+        await api.post(`/readings/components`, {
           ...data,
           type: activeTab === 'capteurs' ? 'sensor' : 'actuator',
         });
@@ -172,7 +171,7 @@ export default function ComposantsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/readings/components/${id}`);
+              await api.delete(`/readings/components/${id}`);
 
               // Reset pagination to avoid out of bounds on last item removal
               if (activeTab === "capteurs") setSensorPage(1);

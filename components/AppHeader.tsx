@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import * as Location from "expo-location";
 import axios from "axios";
 import { storage } from "@/utils/storage";
-import { API_URL } from "@/constants/Api";
+import api from "@/utils/api";
 
 const COLORS = {
   textPrimary: "#1A1A1A",
@@ -25,7 +25,7 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
         setIsOnline(false);
         return;
       }
-      const response = await axios.get(`${API_URL}/readings/status`, {
+      const response = await api.get(`/readings/status`, {
         params: { controller_id: controllerId }
       });
       setIsOnline(response.data.online);

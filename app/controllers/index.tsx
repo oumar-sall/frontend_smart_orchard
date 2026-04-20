@@ -2,12 +2,11 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { storage } from "@/utils/storage";
+import api from "@/utils/api";
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { API_URL } from "@/constants/Api";
 import { logger } from "@/shared/logger";
 
 const COLORS = {
@@ -40,10 +39,7 @@ export default function ControllerListScreen() {
   const fetchControllers = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await storage.getItem("userToken");
-      const response = await axios.get(`${API_URL}/controllers`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/controllers`);
       setControllers(response.data);
     } catch (error: any) {
       logger.error("Erreur récup controllers:", error);
@@ -96,10 +92,7 @@ export default function ControllerListScreen() {
     setFoundController(null);
     setHasSearched(true);
     try {
-      const token = await storage.getItem("userToken");
-      const response = await axios.get(`${API_URL}/controllers/search?imei=${imei}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/controllers/search?imei=${imei}`);
       setFoundController(response.data);
       // On met à jour le champ avec l'IMEI nettoyé et le nom trouvé
       setNewController(prev => ({ ...prev, imei, name: response.data.name }));
@@ -137,10 +130,7 @@ export default function ControllerListScreen() {
 
     try {
       setLoading(true);
-      const token = await storage.getItem("userToken");
-      await axios.post(`${API_URL}/controllers`, newController, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/controllers`, newController);
       setModalVisible(false);
       setNewController({ name: '', imei: '', join_otp: '' });
       setFoundController(null);
