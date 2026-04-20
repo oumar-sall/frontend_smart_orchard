@@ -2,10 +2,9 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { storage } from "@/utils/storage";
-import { API_URL } from "@/constants/Api";
+import api from "@/utils/api";
 
 const COLORS = {
   background: "#F5F0EB",
@@ -29,10 +28,7 @@ export default function ManageControllerScreen() {
 
   const fetchController = React.useCallback(async () => {
     try {
-      const token = await storage.getItem("userToken");
-      const response = await axios.get(`${API_URL}/controllers/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/controllers/${id}`);
       setController(response.data);
     } catch {
       Alert.alert("Erreur", "Impossible de charger les informations du contrôleur");
@@ -44,10 +40,8 @@ export default function ManageControllerScreen() {
 
   const fetchStatus = React.useCallback(async () => {
     try {
-      const token = await storage.getItem("userToken");
-      const response = await axios.get(`${API_URL}/readings/status`, {
-        params: { controller_id: id },
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await api.get(`/readings/status`, {
+        params: { controller_id: id }
       });
       setIsOnline(response.data.online);
     } catch {
@@ -77,12 +71,9 @@ export default function ManageControllerScreen() {
     }
     setSaving(true);
     try {
-      const token = await storage.getItem("userToken");
       const payload: any = { name: controller.name };
 
-      await axios.put(`${API_URL}/controllers/${id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.put(`/controllers/${id}`, payload);
       Alert.alert("Succès", "Contrôleur mis à jour avec succès");
       
       const activeId = await storage.getItem('selectedControllerId');
@@ -108,10 +99,7 @@ export default function ManageControllerScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const token = await storage.getItem("userToken");
-              await axios.delete(`${API_URL}/controllers/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
+              await api.delete(`/controllers/${id}`);
               const activeId = await storage.getItem('selectedControllerId');
               if (activeId === id) {
                 await storage.clearControllerSelection();
