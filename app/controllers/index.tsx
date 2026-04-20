@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter, useFocusEffect } from "expo-router";
+import * as Haptics from 'expo-haptics';
 import { storage } from "@/utils/storage";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { API_URL } from "@/constants/Api";
@@ -33,6 +34,8 @@ export default function ControllerListScreen() {
   const [scanning, setScanning] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+  const isScanningRef = useRef(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
 
   const fetchControllers = useCallback(async () => {
     setLoading(true);
@@ -152,6 +155,10 @@ export default function ControllerListScreen() {
   };
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
+    if (isScanningRef.current) return;
+    isScanningRef.current = true;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setScanning(false);
     const cleanImei = data?.trim();
     setNewController(prev => ({ ...prev, imei: cleanImei }));
@@ -170,6 +177,7 @@ export default function ControllerListScreen() {
       }
     }
     setModalVisible(false);
+    isScanningRef.current = false;
     setScanning(true);
   };
 
@@ -388,8 +396,10 @@ export default function ControllerListScreen() {
           <CameraView
             onBarcodeScanned={handleBarCodeScanned}
             barcodeScannerSettings={{
-              barcodeTypes: ["qr", "ean13", "ean8", "code128", "code39"],
+              barcodeTypes: ["qr", "code128"],
             }}
+            enableTorch={torchEnabled}
+            zoom={0.1}
             style={StyleSheet.absoluteFillObject}
           />
           <View style={styles.overlay}>
@@ -403,10 +413,21 @@ export default function ControllerListScreen() {
             <TouchableOpacity style={styles.closeScanner} onPress={() => {
               setScanning(false);
               setModalVisible(true);
+              setTorchEnabled(false);
             }}>
               <Ionicons name="close" size={30} color="white" />
             </TouchableOpacity>
             <Text style={styles.scannerTitle}>Scanner le code IMEI</Text>
+            <TouchableOpacity 
+              style={styles.torchBtn} 
+              onPress={() => setTorchEnabled(prev => !prev)}
+            >
+              <Ionicons 
+                name={torchEnabled ? "flash" : "flash-outline"} 
+                size={24} 
+                color={torchEnabled ? "#FED330" : "white"} 
+              />
+            </TouchableOpacity>
           </View>
           <View style={styles.scannerFooter}>
             <Text style={styles.scannerText}>Placez le code-barres dans le cadre</Text>
@@ -639,7 +660,13 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
-    marginLeft: 20,
+    flex: 1,
+    textAlign: "center",
+  },
+  torchBtn: {
+    padding: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 20,
   },
   scannerFooter: {
     position: "absolute",
@@ -674,8 +701,9 @@ const styles = StyleSheet.create({
   focusedItem: {
     flex: 1,
     borderWidth: 2,
-    borderColor: '#4CAF50',
+    borderColor: '#FED330',
     backgroundColor: 'transparent',
+    borderRadius: 15,
   },
   notFoundContainer: {
     alignItems: 'center',
