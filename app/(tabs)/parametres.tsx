@@ -98,9 +98,9 @@ export default function ParametresScreen() {
       });
       if (response.data) {
         setSettings({
-          irrigation_duration: response.data.irrigation_duration ?? 900,
-          reporting_interval: response.data.reporting_interval ?? 30,
-          threshold_min: response.data.threshold_min ?? 35.0,
+          irrigation_duration: response.data.irrigation_duration !== undefined && response.data.irrigation_duration !== null ? response.data.irrigation_duration : 900,
+          reporting_interval: response.data.reporting_interval || 30,
+          threshold_min: response.data.threshold_min !== undefined && response.data.threshold_min !== null ? response.data.threshold_min : 35.0,
           sensor_id: response.data.sensor_id ?? null,
           auto_mode: response.data.auto_mode ?? false,
         });
@@ -162,7 +162,7 @@ export default function ParametresScreen() {
             pinToLoad = res.data[0].pin_number;
             setSelectedPin(pinToLoad);
           }
-          if (pinToLoad && pinToLoad !== 'OUT 0') {
+          if (pinToLoad) {
             fetchSettings(pinToLoad);
           }
           fetchAvailableSensors();

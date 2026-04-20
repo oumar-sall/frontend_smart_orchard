@@ -17,9 +17,13 @@ interface AppHeaderProps {
 export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
   const [internalTemp, setInternalTemp] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [controllerName, setControllerName] = useState("Smart Orchard");
 
   const fetchStatus = async () => {
     try {
+      const storedName = await storage.getItem('selectedControllerName');
+      if (storedName) setControllerName(storedName);
+
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId) {
         setIsOnline(false);
@@ -76,9 +80,9 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
         <View style={styles.logoBox}>
           <Text style={styles.logoEmoji}>🌿</Text>
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
           <Text style={styles.appName} numberOfLines={1}>Smart Orchard</Text>
-          <Text style={styles.location} numberOfLines={1}>📍 Bamako, Mali</Text>
+          <Text style={styles.location} numberOfLines={1}>📍 {controllerName}</Text>
         </View>
       </View>
       <View style={styles.headerRight}>

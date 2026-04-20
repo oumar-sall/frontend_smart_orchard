@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { storage } from "@/utils/storage";
@@ -69,6 +69,8 @@ export default function ComposantsScreen() {
   const [newUnit, setNewUnit] = useState("");
   const [newMinValue, setNewMinValue] = useState("");
   const [newMaxValue, setNewMaxValue] = useState("");
+  const [newVmin, setNewVmin] = useState("0");
+  const [newVmax, setNewVmax] = useState("10");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const [editingComponentId, setEditingComponentId] = useState<string | null>(null);
@@ -110,6 +112,8 @@ export default function ComposantsScreen() {
     setNewUnit(item.unit || "");
     setNewMinValue(item.min_value?.toString() || "");
     setNewMaxValue(item.max_value?.toString() || "");
+    setNewVmin(item.v_min?.toString() || "0");
+    setNewVmax(item.v_max?.toString() || "10");
 
     // Auto-detect template if possible (simple heuristic)
     const t = SENSOR_TEMPLATES.find(tmp => tmp.label === item.label);
@@ -132,6 +136,8 @@ export default function ComposantsScreen() {
         unit: newUnit || undefined,
         min_value: newMinValue ? parseFloat(newMinValue) : undefined,
         max_value: newMaxValue ? parseFloat(newMaxValue) : undefined,
+        v_min: newVmin ? parseFloat(newVmin) : 0,
+        v_max: newVmax ? parseFloat(newVmax) : 10,
         controller_id: controllerId
       };
 
@@ -151,6 +157,8 @@ export default function ComposantsScreen() {
       setNewUnit("");
       setNewMinValue("");
       setNewMaxValue("");
+      setNewVmin("0");
+      setNewVmax("10");
 
       fetchData();
       Alert.alert("Succès", editingComponentId ? "Composant mis à jour" : "Composant ajouté");
@@ -178,6 +186,7 @@ export default function ComposantsScreen() {
               else setActuatorPage(1);
 
               fetchData();
+              Alert.alert("Succès", "Composant supprimé avec succès");
             } catch {
               Alert.alert("Erreur", "Impossible de supprimer le composant");
             }
@@ -328,6 +337,8 @@ export default function ComposantsScreen() {
           setNewUnit("");
           setNewMinValue("");
           setNewMaxValue("");
+          setNewVmin("0");
+          setNewVmax("10");
           setSelectedTemplate(null);
           setModalVisible(true);
         }}>
@@ -335,16 +346,22 @@ export default function ComposantsScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Adding/Editing Component Modal */}
       <Modal visible={isModalVisible} transparent animationType="fade">
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>
-                  {editingComponentId ? "Modifier" : "Ajouter"} un {activeTab === "capteurs" ? "capteur" : "actionneur"}
-                </Text>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: '100%', alignItems: 'center' }}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingComponentId ? "Modifier" : "Ajouter"} un {activeTab === "capteurs" ? "capteur" : "actionneur"}
+              </Text>
 
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.modalScrollView}
+                contentContainerStyle={styles.modalScrollContent}
+              >
                 {activeTab === "capteurs" && (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Configuration rapide (Template)</Text>
@@ -406,14 +423,27 @@ export default function ComposantsScreen() {
                     </View>
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                       <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>Valeur Min</Text>
-                        <TextInput style={styles.input} placeholder="Ex: -10" keyboardType="numeric" value={newMinValue} onChangeText={setNewMinValue} placeholderTextColor={COLORS.textSecondary} />
+                        <Text style={styles.inputLabel}>Valeur Min (Pmin)</Text>
+                        <TextInput style={styles.input} placeholder="Ex: 0" keyboardType="numeric" value={newMinValue} onChangeText={setNewMinValue} placeholderTextColor={COLORS.textSecondary} />
                       </View>
                       <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>Valeur Max</Text>
-                        <TextInput style={styles.input} placeholder="Ex: 50" keyboardType="numeric" value={newMaxValue} onChangeText={setNewMaxValue} placeholderTextColor={COLORS.textSecondary} />
+                        <Text style={styles.inputLabel}>Valeur Max (Pmax)</Text>
+                        <TextInput style={styles.input} placeholder="Ex: 100" keyboardType="numeric" value={newMaxValue} onChangeText={setNewMaxValue} placeholderTextColor={COLORS.textSecondary} />
                       </View>
                     </View>
+
+                    {(newPin.startsWith('IN ') || newPin.startsWith('VOL ')) && (
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                          <Text style={styles.inputLabel}>Tension Min (Vmin)</Text>
+                          <TextInput style={styles.input} placeholder="0.0" keyboardType="numeric" value={newVmin} onChangeText={setNewVmin} placeholderTextColor={COLORS.textSecondary} />
+                        </View>
+                        <View style={[styles.inputGroup, { flex: 1 }]}>
+                          <Text style={styles.inputLabel}>Tension Max (Vmax)</Text>
+                          <TextInput style={styles.input} placeholder="10.0" keyboardType="numeric" value={newVmax} onChangeText={setNewVmax} placeholderTextColor={COLORS.textSecondary} />
+                        </View>
+                      </View>
+                    )}
                   </>
                 )}
 
@@ -446,21 +476,21 @@ export default function ComposantsScreen() {
                     })}
                   </ScrollView>
                 </View>
+              </ScrollView>
 
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
-                    <Text style={styles.modalButtonTextCancel}>Annuler</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleSaveComponent}>
-                    <Text style={styles.modalButtonTextSubmit}>
-                      {editingComponentId ? "Enregistrer" : "Ajouter"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalButtonCancel} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.modalButtonTextCancel}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalButtonSubmit} onPress={handleSaveComponent}>
+                  <Text style={styles.modalButtonTextSubmit}>
+                    {editingComponentId ? "Enregistrer" : "Ajouter"}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            </TouchableWithoutFeedback>
+            </View>
           </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+        </View>
       </Modal>
 
     </SafeAreaView>
@@ -625,6 +655,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
+    width: '90%',
+    maxHeight: '85%',
     backgroundColor: "#FFF",
     borderRadius: 28,
     padding: 24,
@@ -633,6 +665,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
+  },
+  modalScrollView: {
+    width: '100%',
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
