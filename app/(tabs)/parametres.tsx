@@ -97,13 +97,14 @@ export default function ParametresScreen() {
         params: { pin, controller_id: controllerId }
       });
       if (response.data) {
-        setSettings({
+        setSettings(prev => ({
+          ...prev,
           irrigation_duration: response.data.irrigation_duration !== undefined && response.data.irrigation_duration !== null ? response.data.irrigation_duration : 900,
-          reporting_interval: response.data.reporting_interval || 30,
+          reporting_interval: response.data.reporting_interval || prev.reporting_interval,
           threshold_min: response.data.threshold_min !== undefined && response.data.threshold_min !== null ? response.data.threshold_min : 35.0,
           sensor_id: response.data.sensor_id ?? null,
           auto_mode: response.data.auto_mode ?? false,
-        });
+        }));
       }
     } catch (error) {
       console.error("Erreur fetch settings: ", error);
