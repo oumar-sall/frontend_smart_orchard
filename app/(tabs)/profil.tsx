@@ -2,10 +2,10 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
+import api from "@/utils/api";
 
 import { storage } from "@/utils/storage";
-import { API_URL } from "@/constants/Api";
+// API_URL removed, using api utility instead
 import { useRouter } from "expo-router";
 
 const COLORS = {
@@ -48,10 +48,8 @@ export default function ProfilScreen() {
 
     try {
       setLoading(true);
-      const token = await storage.getItem('userToken');
-      const response = await axios.put(`${API_URL}/auth/update-profile`, 
-        { first_name: firstName, last_name: lastName },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.put(`/auth/update-profile`, 
+        { first_name: firstName, last_name: lastName }
       );
 
       if (response.data.user) {
@@ -101,10 +99,7 @@ export default function ProfilScreen() {
                   onPress: async () => {
                     try {
                       setLoading(true);
-                      const token = await storage.getItem('userToken');
-                      await axios.delete(`${API_URL}/auth/delete-account`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                      });
+                      await api.delete(`/auth/delete-account`);
                       await storage.clearAll(); // On nettoie tout
                       router.replace('/login');
                     } catch (error) {

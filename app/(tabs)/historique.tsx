@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { storage } from "@/utils/storage";
+import api from "@/utils/api";
 import AppHeader from "../../components/AppHeader";
 import HistoryCard from "../../components/HistoryCard";
 import ActivityLogCard from "../../components/ActivityLogCard";
 import HistoryChart from "../../components/HistoryChart";
-import { API_URL } from "@/constants/Api";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get('window');
 const SUMMARY_CARD_WIDTH = (width - 56) / 3;
@@ -37,6 +37,7 @@ function SummaryCard({ title, value, unit, icon, color }: { title: string, value
 }
 
 function HistoriqueScreen() {
+  const router = useRouter();
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,7 @@ function HistoriqueScreen() {
     setLoading(true);
     try {
       const controllerId = await storage.getItem('selectedControllerId');
-      const response = await axios.get(`${API_URL}/readings/history`, {
+      const response = await api.get(`/readings/history`, {
         params: { 
           period: selectedPeriod,
           controller_id: controllerId
@@ -84,7 +85,7 @@ function HistoriqueScreen() {
     setLoading(true);
     try {
       const controllerId = await storage.getItem('selectedControllerId');
-      const response = await axios.get(`${API_URL}/activity-logs`, {
+      const response = await api.get(`/activity-logs`, {
         params: {
           controller_id: controllerId,
           period: selectedPeriod,
@@ -269,6 +270,8 @@ function HistoriqueScreen() {
                     type={log.event_type}
                     description={log.description}
                     timestamp={log.timestamp}
+                    userName={log.User ? `${log.User.first_name} ${log.User.last_name}` : undefined}
+                    onPress={() => router.push(`/activities/${log.id}`)}
                   />
                 ))}
                 

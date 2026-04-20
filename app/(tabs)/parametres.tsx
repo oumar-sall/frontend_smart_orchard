@@ -1,13 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { storage } from "@/utils/storage";
+import api from "@/utils/api";
 import { useRouter } from "expo-router";
 import AppHeader from "../../components/AppHeader";
-import { API_URL } from "@/constants/Api";
 
 import { SettingsGroup } from '@/components/settings/SettingsGroup';
 import { SettingSlider } from '@/components/settings/SettingSlider';
@@ -34,7 +33,7 @@ export default function ParametresScreen() {
     try {
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId || isLoggingOut) return;
-      await axios.put(`${API_URL}/readings/settings`, {
+      await api.put(`/readings/settings`, {
         [key]: val,
         pin,
         controller_id: controllerId
@@ -58,7 +57,7 @@ export default function ParametresScreen() {
         timeout = setTimeout(() => {
           storage.getItem('selectedControllerId').then(id => {
             if (id) {
-              axios.put(`${API_URL}/readings/settings`, { [key]: val, pin, controller_id: id })
+              api.put(`/readings/settings`, { [key]: val, pin, controller_id: id })
                 .catch(err => console.error("Erreur debounce sync:", err));
             }
           });
@@ -94,14 +93,14 @@ export default function ParametresScreen() {
     try {
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId || isLoggingOut) return;
-      const response = await axios.get(`${API_URL}/readings/settings`, {
+      const response = await api.get(`/readings/settings`, {
         params: { pin, controller_id: controllerId }
       });
       if (response.data) {
         setSettings({
-          irrigation_duration: response.data.irrigation_duration ?? 900,
-          reporting_interval: response.data.reporting_interval ?? 30,
-          threshold_min: response.data.threshold_min ?? 35.0,
+          irrigation_duration: response.data.irrigation_duration !== undefined && response.data.irrigation_duration !== null ? response.data.irrigation_duration : 900,
+          reporting_interval: response.data.reporting_interval || 30,
+          threshold_min: response.data.threshold_min !== undefined && response.data.threshold_min !== null ? response.data.threshold_min : 35.0,
           sensor_id: response.data.sensor_id ?? null,
           auto_mode: response.data.auto_mode ?? false,
         });
@@ -115,7 +114,7 @@ export default function ParametresScreen() {
     try {
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId || isLoggingOut) return;
-      const response = await axios.get(`${API_URL}/readings/sensors`, {
+      const response = await api.get(`/readings/sensors`, {
         params: { controller_id: controllerId }
       });
       setAvailableSensors(response.data || []);
@@ -152,7 +151,7 @@ export default function ParametresScreen() {
           }
           if (!storedId || isLoggingOut) return;
 
-          const res = await axios.get(`${API_URL}/readings/actuators`, {
+          const res = await api.get(`/readings/actuators`, {
             params: { controller_id: storedId }
           });
           setActuators(res.data);
@@ -163,7 +162,7 @@ export default function ParametresScreen() {
             pinToLoad = res.data[0].pin_number;
             setSelectedPin(pinToLoad);
           }
-          if (pinToLoad && pinToLoad !== 'OUT 0') {
+          if (pinToLoad) {
             fetchSettings(pinToLoad);
           }
           fetchAvailableSensors();
@@ -186,63 +185,67 @@ export default function ParametresScreen() {
             onPress={() => activeController.id && router.push(`/controllers/${activeController.id}` as any)}
           />
 
-          <View style={{ marginBottom: 12 }}>
-            <ActuatorSelector
-              actuators={actuators}
-              selectedPin={selectedPin}
-              onSelect={(pin) => {
-                setSelectedPin(pin);
-                fetchSettings(pin);
-              }}
-            />
-          </View>
+          {actuators.length > 0 && (
+            <>
+              <View style={{ marginBottom: 12 }}>
+                <ActuatorSelector
+                  actuators={actuators}
+                  selectedPin={selectedPin}
+                  onSelect={(pin) => {
+                    setSelectedPin(pin);
+                    fetchSettings(pin);
+                  }}
+                />
+              </View>
 
-          <SettingsGroup title="Configuration de l'Arrosage">
-            <SettingSlider
-              label="Durée d'irrigation par session"
-              icon="time-outline"
-              iconColor="#4A90E2"
-              value={settings.irrigation_duration / 60}
-              unit="min"
-              min={5}
-              max={60}
-              step={1}
-              borderless
-              onValueChange={handleDurationChange}
-              formatValue={formatRoundValue}
-            />
-          </SettingsGroup>
+              <SettingsGroup title="Configuration de l'Arrosage">
+                <SettingSlider
+                  label="Durée d'irrigation par session"
+                  icon="time-outline"
+                  iconColor="#4A90E2"
+                  value={settings.irrigation_duration / 60}
+                  unit="min"
+                  min={5}
+                  max={60}
+                  step={1}
+                  borderless
+                  onValueChange={handleDurationChange}
+                  formatValue={formatRoundValue}
+                />
+              </SettingsGroup>
 
-          <SettingsGroup title="Automatisation Avancée">
-            <AutoModeCard
-              isEnabled={settings.auto_mode}
-              borderless
-              onToggle={handleAutoToggle}
-            />
-            {settings.auto_mode ? (
-              <SettingSlider
-                label="Seuil de déclenchement d'humidité"
-                icon="water-outline"
-                iconColor="#10B981"
-                value={settings.threshold_min}
-                unit="%"
-                min={0}
-                max={100}
-                step={1}
-                borderless
-                onValueChange={handleThresholdChange}
-                formatValue={formatRoundValue}
-              />
-            ) : null}
-            {settings.auto_mode ? (
-              <SensorSelector
-                sensors={availableSensors}
-                selectedId={settings.sensor_id}
-                borderless
-                onSelect={handleSensorSelect}
-              />
-            ) : null}
-          </SettingsGroup>
+              <SettingsGroup title="Automatisation Avancée">
+                <AutoModeCard
+                  isEnabled={settings.auto_mode}
+                  borderless
+                  onToggle={handleAutoToggle}
+                />
+                {settings.auto_mode ? (
+                  <SettingSlider
+                    label="Seuil de déclenchement d'humidité"
+                    icon="water-outline"
+                    iconColor="#10B981"
+                    value={settings.threshold_min}
+                    unit="%"
+                    min={0}
+                    max={100}
+                    step={1}
+                    borderless
+                    onValueChange={handleThresholdChange}
+                    formatValue={formatRoundValue}
+                  />
+                ) : null}
+                {settings.auto_mode ? (
+                  <SensorSelector
+                    sensors={availableSensors}
+                    selectedId={settings.sensor_id}
+                    borderless
+                    onSelect={handleSensorSelect}
+                  />
+                ) : null}
+              </SettingsGroup>
+            </>
+          )}
 
           <SettingsGroup title="Paramètres Techniques">
             <View style={styles.experimentalHeader}>

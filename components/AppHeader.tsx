@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import * as Location from "expo-location";
 import axios from "axios";
 import { storage } from "@/utils/storage";
-import { API_URL } from "@/constants/Api";
+import api from "@/utils/api";
 
 const COLORS = {
   textPrimary: "#1A1A1A",
@@ -17,15 +17,19 @@ interface AppHeaderProps {
 export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
   const [internalTemp, setInternalTemp] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [controllerName, setControllerName] = useState("Smart Orchard");
 
   const fetchStatus = async () => {
     try {
+      const storedName = await storage.getItem('selectedControllerName');
+      if (storedName) setControllerName(storedName);
+
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId) {
         setIsOnline(false);
         return;
       }
-      const response = await axios.get(`${API_URL}/readings/status`, {
+      const response = await api.get(`/readings/status`, {
         params: { controller_id: controllerId }
       });
       setIsOnline(response.data.online);
@@ -76,9 +80,9 @@ export default function AppHeader({ externalTemp = null }: AppHeaderProps) {
         <View style={styles.logoBox}>
           <Text style={styles.logoEmoji}>🌿</Text>
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
           <Text style={styles.appName} numberOfLines={1}>Smart Orchard</Text>
-          <Text style={styles.location} numberOfLines={1}>📍 Bamako, Mali</Text>
+          <Text style={styles.location} numberOfLines={1}>📍 {controllerName}</Text>
         </View>
       </View>
       <View style={styles.headerRight}>

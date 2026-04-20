@@ -6,10 +6,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import * as Location from "expo-location";
 import { storage } from "@/utils/storage";
+import api from "@/utils/api";
 import { useRouter } from "expo-router";
 import CircularGauge from "../../components/CircularGauge";
 import AppHeader from "../../components/AppHeader";
-import { API_URL } from "@/constants/Api";
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 72) / 3;
@@ -198,7 +198,7 @@ export default function DashboardScreen() {
       const controllerId = await storage.getItem('selectedControllerId');
       if (!controllerId) return;
 
-      const response = await axios.get(`${API_URL}/readings/dashboard`, {
+      const response = await api.get(`/readings/dashboard`, {
         params: { controller_id: controllerId }
       });
       setDashboardData(response.data);
@@ -225,7 +225,7 @@ export default function DashboardScreen() {
   const handleToggleIrrigation = async (componentId: string, action: string) => {
     setIrrigationLoadingId(componentId);
     try {
-      const response = await axios.post(`${API_URL}/readings/irrigation`, {
+      const response = await api.post(`/readings/irrigation`, {
         action,
         componentId
       });
