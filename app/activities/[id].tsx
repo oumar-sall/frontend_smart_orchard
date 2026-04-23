@@ -80,7 +80,7 @@ export default function ActivityDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Détails de l'activité</Text>
+        <Text style={styles.headerTitle}>{"Détails de l'activité"}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -119,7 +119,7 @@ export default function ActivityDetailScreen() {
                     <Ionicons name="call-outline" size={20} color="#4A90E2" />
                 </View>
                 <View>
-                    <Text style={styles.infoLabel}>Coordonnées de l'auteur</Text>
+                    <Text style={styles.infoLabel}>{"Coordonnées de l'auteur"}</Text>
                     <Text style={styles.infoValue}>{log.User.phone}</Text>
                 </View>
             </View>
