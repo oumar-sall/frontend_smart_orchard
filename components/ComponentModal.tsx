@@ -1,36 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../constants/Theme";
+import { HARDWARE_CONFIG, SENSOR_UNITS } from "../constants/Hardware";
 
-const COLORS = {
-  background: "#F5F0EB",
-  card: "#FFFFFF",
-  green: "#4A7C59",
-  textPrimary: "#1A1A1A",
-  textSecondary: "#717171",
-  border: "#E8E0D8",
-};
-
-const SENSOR_PINS = [
-  { value: "IN 0", label: "IN 0" },
-  { value: "IN 1", label: "IN 1" },
-  { value: "IN 2", label: "IN 2" },
-  { value: "IN 3", label: "IN 3" },
-  { value: "IN 4", label: "IN 4" },
-  { value: "IN 5", label: "IN 5" },
-  { value: "VOL 0", label: "VOL 0" },
-  { value: "VOL 1", label: "VOL 1" },
-  { value: "1-WIRE", label: "1-WIRE" },
-  { value: "485 A", label: "485 A" },
-  { value: "485 B", label: "485 B" },
-];
-
-const ACTUATOR_PINS = [
-  { value: "OUT 0", label: "OUT 0" },
-  { value: "OUT 1", label: "OUT 1" },
-  { value: "OUT 2", label: "OUT 2" },
-  { value: "OUT 3", label: "OUT 3" },
-];
+const SENSOR_PINS = HARDWARE_CONFIG.GALILEOSKY.SENSOR_PINS;
+const ACTUATOR_PINS = HARDWARE_CONFIG.GALILEOSKY.ACTUATOR_PINS;
 
 const SENSOR_TEMPLATES = [
   { id: 'temp', label: 'Température', unit: '°C', min: -10, max: 50, pin: '485 A', icon: 'thermometer-outline' },
@@ -38,15 +13,13 @@ const SENSOR_TEMPLATES = [
   { id: 'ph', label: 'pH Sol', unit: 'pH', min: 0, max: 14, pin: 'ph', icon: 'flask-outline' },
 ];
 
-const COMMON_UNITS = ['°C', '%', 'pH', 'V', 'bar'];
-
 interface ComponentModalProps {
   isVisible: boolean;
   onClose: () => void;
   onSave: () => void;
   activeTab: 'capteurs' | 'actionneurs';
   editingId: string | null;
-  
+
   // States passed from parent
   label: string; setLabel: (v: string) => void;
   pin: string; setPin: (v: string) => void;
@@ -61,7 +34,7 @@ interface ComponentModalProps {
 }
 
 export default function ComponentModal(props: ComponentModalProps) {
-  const { 
+  const {
     isVisible, onClose, onSave, activeTab, editingId,
     label, setLabel, pin, setPin, unit, setUnit,
     minVal, setMinVal, maxVal, setMaxVal, vMin, setVmin, vMax, setVmax,
@@ -123,7 +96,7 @@ export default function ComponentModal(props: ComponentModalProps) {
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Unité de mesure</Text>
                     <View style={styles.unitChips}>
-                      {COMMON_UNITS.map(u => (
+                      {SENSOR_UNITS.map(u => (
                         <TouchableOpacity
                           key={u}
                           style={[styles.unitChip, unit === u && styles.unitChipSelected]}
@@ -135,7 +108,7 @@ export default function ComponentModal(props: ComponentModalProps) {
                       <TextInput
                         style={[styles.input, { flex: 1, minWidth: 80, height: 38, paddingVertical: 0 }]}
                         placeholder="Autre..."
-                        value={COMMON_UNITS.includes(unit) ? "" : unit}
+                        value={SENSOR_UNITS.includes(unit) ? "" : unit}
                         onChangeText={setUnit}
                         placeholderTextColor={COLORS.textSecondary}
                       />

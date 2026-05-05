@@ -7,14 +7,7 @@ import ComponentModal from "../../components/ComponentModal";
 import ComponentCard from "../../components/ComponentCard";
 import Pagination from "../../components/Pagination";
 import { useComponents } from "../../hooks/useComponents";
-
-const COLORS = {
-  background: "#F5F0EB",
-  card: "#FFFFFF",
-  green: "#4A7C59",
-  textPrimary: "#1A1A1A",
-  textSecondary: "#717171",
-};
+import { COLORS } from "../../constants/Theme";
 
 export default function ComposantsScreen() {
   const [activeTab, setActiveTab] = useState<"capteurs" | "actionneurs">("capteurs");

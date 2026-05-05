@@ -1,12 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
-
-const COLORS = {
-  card: "#FFFFFF",
-  textPrimary: "#1A1A1A",
-  textSecondary: "#717171",
-};
+import { COLORS } from "../constants/Theme";
 
 interface PaginationProps {
   currentPage: number;

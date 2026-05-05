@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import api from '@/utils/api';
 import { storage } from '@/utils/storage';
+import { APP_CONFIG } from '../constants/Config';
 
 export function useDashboard() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export function useDashboard() {
     };
     loadAll();
 
-    const interval = setInterval(fetchDashboardData, 10000);
+    const interval = setInterval(fetchDashboardData, APP_CONFIG.DASHBOARD.REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
 

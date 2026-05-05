@@ -5,12 +5,7 @@ import AppHeader from "../../components/AppHeader";
 import MetricCard from "../../components/MetricCard";
 import IrrigationCard from "../../components/IrrigationCard";
 import { useDashboard } from "../../hooks/useDashboard";
-
-const COLORS = {
-  background: "#F5F0EB",
-  green: "#4A7C59",
-  textSecondary: "#717171",
-};
+import { COLORS } from "../../constants/Theme";
 
 export default function DashboardScreen() {
   const { 

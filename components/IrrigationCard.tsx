@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
-
-const COLORS = {
-  card: "#FFFFFF",
-  green: "#4A7C59",
-  textPrimary: "#1A1A1A",
-  textSecondary: "#717171",
-};
+import { COLORS } from "../constants/Theme";
 
 interface IrrigationCardProps {
   actuator: any;

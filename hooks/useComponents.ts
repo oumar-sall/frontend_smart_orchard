@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import api from '@/utils/api';
 import { storage } from '@/utils/storage';
+import { HARDWARE_CONFIG } from '../constants/Hardware';
+import { APP_CONFIG } from '../constants/Config';
 
-const ITEMS_PER_PAGE = 7;
+const ITEMS_PER_PAGE = APP_CONFIG.PAGINATION.ITEMS_PER_PAGE;
 
 export function useComponents(activeTab: 'capteurs' | 'actionneurs') {
   const [sensors, setSensors] = useState<any[]>([]);
@@ -23,8 +25,8 @@ export function useComponents(activeTab: 'capteurs' | 'actionneurs') {
   const [unit, setUnit] = useState("");
   const [minVal, setMinVal] = useState("");
   const [maxVal, setMaxVal] = useState("");
-  const [vMin, setVmin] = useState("0");
-  const [vMax, setVmax] = useState("10");
+  const [vMin, setVmin] = useState(HARDWARE_CONFIG.DEFAULTS.V_MIN.toString());
+  const [vMax, setVmax] = useState(HARDWARE_CONFIG.DEFAULTS.V_MAX.toString());
   const [modbusTag, setModbusTag] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
@@ -84,8 +86,8 @@ export function useComponents(activeTab: 'capteurs' | 'actionneurs') {
         unit: unit || undefined,
         min_value: minVal ? parseFloat(minVal) : undefined,
         max_value: maxVal ? parseFloat(maxVal) : undefined,
-        v_min: vMin ? parseFloat(vMin) : 0,
-        v_max: vMax ? parseFloat(vMax) : 10,
+        v_min: vMin ? parseFloat(vMin) : HARDWARE_CONFIG.DEFAULTS.V_MIN,
+        v_max: vMax ? parseFloat(vMax) : HARDWARE_CONFIG.DEFAULTS.V_MAX,
         modbus_tag: modbusTag ? parseInt(modbusTag) : undefined,
         controller_id: controllerId
       };
@@ -122,7 +124,9 @@ export function useComponents(activeTab: 'capteurs' | 'actionneurs') {
 
   const resetForm = () => {
     setEditingId(null); setLabel(""); setPin(""); setUnit("");
-    setMinVal(""); setMaxVal(""); setVmin("0"); setVmax("10");
+    setMinVal(""); setMaxVal(""); 
+    setVmin(HARDWARE_CONFIG.DEFAULTS.V_MIN.toString()); 
+    setVmax(HARDWARE_CONFIG.DEFAULTS.V_MAX.toString());
     setModbusTag(""); setSelectedTemplate(null);
   };
 

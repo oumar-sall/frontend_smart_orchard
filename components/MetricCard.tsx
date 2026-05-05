@@ -1,16 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import CircularGauge from "./CircularGauge";
+import { COLORS } from "../constants/Theme";
 
 const { width } = Dimensions.get('window');
 const GAUGE_SIZE = (width - 120) / 3;
 const CARD_WIDTH = (width - 72) / 3;
-
-const COLORS = {
-  card: "#FFFFFF",
-  green: "#4A7C59",
-  labelColor: "#555555",
-};
 
 const getSensorColor = (value: number, unit: string, min: number, max: number) => {
   if (isNaN(value)) return COLORS.green;
@@ -52,7 +47,8 @@ interface MetricCardProps {
 }
 
 export default function MetricCard({ sensor }: MetricCardProps) {
-  const { title, value, unit, min = 0, max = 100 } = sensor;
+  const { label, title, value, unit, min = 0, max = 100 } = sensor;
+  const displayTitle = label || title;
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   const isAvailable = !isNaN(numValue) && value !== '--';
   const color = getSensorColor(numValue, unit, min, max);
@@ -71,7 +67,7 @@ export default function MetricCard({ sensor }: MetricCardProps) {
         />
       </View>
       <View style={styles.metricHeader}>
-        <Text style={styles.metricTitle}>{getSensorLabel(title, unit)}</Text>
+        <Text style={styles.metricTitle}>{getSensorLabel(displayTitle, unit)}</Text>
       </View>
     </View>
   );

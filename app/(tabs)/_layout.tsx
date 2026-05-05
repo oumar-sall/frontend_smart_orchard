@@ -3,16 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState, useCallback } from "react";
 import { storage } from "@/utils/storage";
-
-// Couleurs de la maquette
-const COLORS = {
-  background: "#F5F0EB",
-  tabBar: "#FFFFFF",
-  activeGreen: "#4A7C59",
-  inactive: "#9E9E9E",
-  activeTabBg: "#EAF2EC",
-  border: "#E8E0D8",
-};
+import { COLORS } from "../../constants/Theme";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
