@@ -62,7 +62,9 @@ export function useControllers() {
   };
 
   const lookupImei = async (overrideImei?: string) => {
-    const imei = (overrideImei || newController.imei)?.trim();
+    // Guard: onBlur passes a NativeSyntheticEvent, not a string — ignore it
+    const safeOverride = typeof overrideImei === 'string' ? overrideImei : undefined;
+    const imei = (safeOverride || newController.imei)?.trim();
     if (!imei) return;
 
     setSearchLoading(true);
@@ -102,9 +104,10 @@ export function useControllers() {
       setModalVisible(false);
       setNewController({ name: '', imei: '', join_otp: '' });
       setFoundController(null);
-      fetchControllers();
+      await fetchControllers();
       Alert.alert("Succès", foundController?.is_new ? "Contrôleur créé" : "Contrôleur rejoint");
     } catch (error: any) {
+      logger.error("Erreur addController:", error);
       Alert.alert("Erreur", error.response?.data?.error || "Impossible d'opérer");
     } finally {
       setLoading(false);
