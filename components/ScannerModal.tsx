@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,9 +12,19 @@ interface ScannerModalProps {
 
 export default function ScannerModal({ isVisible, onClose, onScanned }: ScannerModalProps) {
   const [torchEnabled, setTorchEnabled] = useState(false);
+  const scannedRef = useRef(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      scannedRef.current = false;
+    }
+  }, [isVisible]);
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    onScanned(data);
+    if (!scannedRef.current) {
+      scannedRef.current = true;
+      onScanned(data);
+    }
   };
 
   return (
