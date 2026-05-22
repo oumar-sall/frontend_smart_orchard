@@ -124,7 +124,7 @@ export default function ParametresScreen() {
 
           <View style={styles.infoCard}>
             <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.green} />
-            <Text style={styles.infoSub}>Smart Orchard v1.3.0 • Agrotech ML Secured Edition</Text>
+            <Text style={styles.infoSub}>Smart Orchard v1.0.0 • TECHNI SONDE ML</Text>
           </View>
         </ScrollView>
       </TouchableWithoutFeedback>
