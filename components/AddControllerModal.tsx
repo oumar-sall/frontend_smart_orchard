@@ -9,6 +9,7 @@ interface AddControllerModalProps {
   onScan: () => void;
   onSave: () => void;
   onLookup: () => void;
+  onImeiChange: (text: string) => void;
   newController: any;
   setNewController: (v: any) => void;
   searchLoading: boolean;
@@ -19,7 +20,7 @@ interface AddControllerModalProps {
 
 export default function AddControllerModal(props: AddControllerModalProps) {
   const {
-    isVisible, onClose, onScan, onSave, onLookup,
+    isVisible, onClose, onScan, onSave, onLookup, onImeiChange,
     newController, setNewController, searchLoading,
     foundController, hasSearched, resendCountdown
   } = props;
@@ -38,7 +39,7 @@ export default function AddControllerModal(props: AddControllerModalProps) {
                   placeholder="IMEI du boitier"
                   keyboardType="numeric"
                   value={newController.imei}
-                  onChangeText={(text) => setNewController({ ...newController, imei: text })}
+                  onChangeText={onImeiChange}
                   onBlur={onLookup}
                   placeholderTextColor={COLORS.textSecondary}
                 />

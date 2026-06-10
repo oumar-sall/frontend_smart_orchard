@@ -25,14 +25,13 @@ export function useControllers() {
     setLoading(true);
     try {
       const response = await api.get(`/controllers`);
-      setControllers(response.data);
+      setControllers(response.data || []);
     } catch (error: any) {
-      logger.error("Erreur récup controllers:", error);
       if (error.response?.status === 401 || error.response?.status === 403) {
         await storage.clearAll();
         router.replace("/login");
       } else {
-        Alert.alert("Erreur", "Impossible de charger les contrôleurs");
+        setControllers([]);
       }
     } finally {
       setLoading(false);
@@ -58,6 +57,16 @@ export function useControllers() {
       router.replace("/(tabs)");
     } catch {
       Alert.alert("Erreur", "Impossible de sélectionner le contrôleur");
+    }
+  };
+
+  const handleImeiChange = (text: string) => {
+    const cleanText = text.replace(/[^0-9]/g, '');
+    setNewController(prev => ({ ...prev, imei: cleanText }));
+
+    // Auto-lookup si l'IMEI semble complet (GalileoSky utilise souvent 15 chiffres)
+    if (cleanText.length >= 15) {
+      lookupImei(cleanText);
     }
   };
 
@@ -125,7 +134,7 @@ export function useControllers() {
 
   return {
     controllers, loading, searchQuery, setSearchQuery, fetchControllers,
-    selectController, lookupImei, addController, handleScanned,
+    selectController, lookupImei, addController, handleScanned, handleImeiChange,
     modalVisible, setModalVisible, scanning, setScanning,
     searchLoading, foundController, newController, setNewController,
     hasSearched, resendCountdown

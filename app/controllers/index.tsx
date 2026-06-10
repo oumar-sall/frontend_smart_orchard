@@ -12,7 +12,7 @@ export default function ControllerListScreen() {
   const router = useRouter();
   const {
     controllers, loading, searchQuery, setSearchQuery, fetchControllers,
-    selectController, lookupImei, addController, handleScanned,
+    selectController, lookupImei, addController, handleScanned, handleImeiChange,
     modalVisible, setModalVisible, scanning, setScanning,
     searchLoading, foundController, newController, setNewController,
     hasSearched, resendCountdown
@@ -108,6 +108,7 @@ export default function ControllerListScreen() {
         onScan={() => { setModalVisible(false); setScanning(true); }}
         onSave={addController}
         onLookup={lookupImei}
+        onImeiChange={handleImeiChange}
         newController={newController}
         setNewController={setNewController}
         searchLoading={searchLoading}

@@ -38,15 +38,11 @@ export default function RootLayout() {
             router.replace("/login");
           }
         } else {
-          // Utilisation d'un cast 'any' pour éviter les erreurs TS sur les chemins
+          // Si on a un token, on redirige systématiquement vers la liste des contrôleurs au démarrage
           const isAtRoot = (segments as any).length === 0 || seg0 === "" || seg0 === "index" || seg0 === undefined;
+
           if (inAuthGroup || isAtRoot) {
-            const selectedId = await storage.getItem('selectedControllerId');
-            if (selectedId) {
-              router.replace("/(tabs)");
-            } else {
-              router.replace("/controllers" as any);
-            }
+            router.replace("/controllers");
           }
         }
       } catch (err) {

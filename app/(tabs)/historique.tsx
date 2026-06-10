@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AppHeader from "../../components/AppHeader";
 import HistoryCard from "../../components/HistoryCard";
 import ActivityLogCard from "../../components/ActivityLogCard";
@@ -18,8 +19,18 @@ export default function HistoriqueScreen() {
     historyData, totalHistoryPages, currentPage, setCurrentPage,
     activityLogs, totalLogPages, logPage, setLogPage,
     loading, averages, selectedPeriod, setSelectedPeriod,
-    viewMode, setViewMode, humChartData, tempChartData
+    viewMode, setViewMode, humChartData, tempChartData,
+    selectedDate, setSelectedDate
   } = useHistory();
+
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -56,12 +67,40 @@ export default function HistoriqueScreen() {
           <Text style={styles.listTitle}>
             {viewMode === 'data' ? 'RÉSUMÉ' : viewMode === 'charts' ? 'STATISTIQUES' : 'ACTIVITÉS'}
           </Text>
-          <TouchableOpacity style={styles.sortButton} onPress={() => setSelectedPeriod(selectedPeriod === 'week' ? 'month' : 'week')}>
-            <Ionicons name="funnel-outline" size={12} color="#77967C" style={{ marginRight: 6 }} />
-            <Text style={styles.sortButtonText}>{selectedPeriod === 'week' ? 'Semaine' : 'Mois'}</Text>
-            <Ionicons name="chevron-down" size={12} color="#77967C" style={{ marginLeft: 4 }} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {viewMode === 'logs' && (
+              <TouchableOpacity
+                style={[styles.sortButton, selectedDate && { borderColor: COLORS.green, backgroundColor: '#EAF2EC' }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={12} color={selectedDate ? COLORS.green : "#77967C"} style={{ marginRight: 6 }} />
+                <Text style={[styles.sortButtonText, selectedDate && { color: COLORS.green }]}>
+                  {selectedDate ? selectedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : 'Date'}
+                </Text>
+                {selectedDate && (
+                  <TouchableOpacity onPress={() => setSelectedDate(null)} style={{ marginLeft: 6 }}>
+                    <Ionicons name="close-circle" size={14} color={COLORS.green} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.sortButton} onPress={() => setSelectedPeriod(selectedPeriod === 'week' ? 'month' : 'week')}>
+              <Ionicons name="funnel-outline" size={12} color="#77967C" style={{ marginRight: 6 }} />
+              <Text style={styles.sortButtonText}>{selectedPeriod === 'week' ? 'Semaine' : 'Mois'}</Text>
+              <Ionicons name="chevron-down" size={12} color="#77967C" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            maximumDate={new Date()}
+          />
+        )}
 
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.green} style={{ marginTop: 40 }} />
