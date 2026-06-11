@@ -35,15 +35,35 @@ export function useDashboard() {
   const fetchExternalTemp = async () => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        console.log("[Weather] Permission to access location was denied");
+        setExternalTemp("indisponible" as any);
+        return;
+      }
 
-      let location = await Location.getCurrentPositionAsync({});
-      const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`);
-      if (weatherRes.data && weatherRes.data.current_weather) {
-        setExternalTemp(weatherRes.data.current_weather.temperature);
+      // Try to get last known position first (faster)
+      let location = await Location.getLastKnownPositionAsync({});
+
+      // If not available, get current position with low accuracy for speed
+      if (!location) {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Low
+        });
+      }
+
+      if (location) {
+        const weatherRes = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`);
+        if (weatherRes.data && weatherRes.data.current_weather) {
+          setExternalTemp(weatherRes.data.current_weather.temperature);
+        } else {
+          setExternalTemp("indisponible" as any);
+        }
+      } else {
+        setExternalTemp("indisponible" as any);
       }
     } catch (err) {
-      console.error("Erreur météo externe: ", err);
+      console.log("[Weather] Could not fetch external temperature:", err instanceof Error ? err.message : "Unknown error");
+      setExternalTemp("indisponible" as any);
     }
   };
 
