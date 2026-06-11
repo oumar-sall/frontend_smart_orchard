@@ -37,6 +37,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# IDE files
+.idea/
+.vscode/
+
 app-example
 
 # generated native folders

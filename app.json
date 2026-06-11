@@ -42,11 +42,20 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "507bf51c-083f-46a5-8584-cf04e86a0388"
+      }
+    },
+    "owner": "oumar_sall10"
   }
 }
