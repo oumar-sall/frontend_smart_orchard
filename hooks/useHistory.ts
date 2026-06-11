@@ -12,7 +12,8 @@ export function useHistory() {
   const [averages, setAverages] = useState({ temp: '--', hum: '--', ph: '--' });
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month'>(APP_CONFIG.HISTORY.DEFAULT_PERIOD as any);
   const [viewMode, setViewMode] = useState<'data' | 'logs' | 'charts'>('data');
-  
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
@@ -77,6 +78,27 @@ export function useHistory() {
     fetchActivityLogs();
   }, [fetchActivityLogs]);
 
+  // Derived history data: filter out days with no measurements and no irrigation
+  const filteredHistoryData = useMemo(() => {
+    return historyData.filter((day: any) =>
+      day.avgTemperature !== '--' ||
+      day.avgHumidity !== '--' ||
+      day.avgPh !== '--' ||
+      day.wateringCount > 0
+    );
+  }, [historyData]);
+
+  // Derived activity logs: filter by date if selected
+  const filteredActivityLogs = useMemo(() => {
+    if (!selectedDate) return activityLogs;
+
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    return activityLogs.filter((log: any) => {
+      const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+      return logDate === dateStr;
+    });
+  }, [activityLogs, selectedDate]);
+
   // Derived chart data
   const humChartData = useMemo(() => historyData.map(d => ({
     value: d.avgHumidity === '--' ? 0 : d.avgHumidity,
@@ -89,13 +111,20 @@ export function useHistory() {
   })), [historyData]);
 
   // Derived pagination
-  const paginatedHistory = historyData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const totalHistoryPages = Math.ceil(historyData.length / ITEMS_PER_PAGE) || 1;
+  const paginatedHistory = filteredHistoryData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalHistoryPages = Math.ceil(filteredHistoryData.length / ITEMS_PER_PAGE);
+
+  // For logs, totalLogPages is already calculated by the backend and returned in response.data.totalPages
+  // but if we are filtering by date locally, we need to recalculate it
+  const finalTotalLogPages = selectedDate
+    ? Math.ceil(filteredActivityLogs.length / ITEMS_PER_PAGE)
+    : totalLogPages;
 
   return {
     historyData: paginatedHistory, totalHistoryPages, currentPage, setCurrentPage,
-    activityLogs, totalLogPages, logPage, setLogPage,
+    activityLogs: filteredActivityLogs, totalLogPages: finalTotalLogPages, logPage, setLogPage,
     loading, averages, selectedPeriod, setSelectedPeriod,
-    viewMode, setViewMode, humChartData, tempChartData
+    viewMode, setViewMode, humChartData, tempChartData,
+    selectedDate, setSelectedDate
   };
 }

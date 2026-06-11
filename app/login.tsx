@@ -69,8 +69,8 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity style={styles.resetCacheBtn} onPress={resetApp}>
-              <Ionicons name="refresh-circle-outline" size={20} color={COLORS.textSecondary} />
-              <Text style={styles.resetCacheText}>Réinitialiser l&apos;application</Text>
+              <Ionicons name="trash-outline" size={16} color={COLORS.textSecondary} />
+              <Text style={styles.resetCacheText}>Vider le cache de l&apos;application</Text>
             </TouchableOpacity>
           </ScrollView>
         </TouchableWithoutFeedback>
