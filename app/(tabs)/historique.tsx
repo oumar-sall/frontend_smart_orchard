@@ -111,7 +111,9 @@ export default function HistoriqueScreen() {
                 {historyData.map((day) => (
                   <HistoryCard key={day.date} {...day} />
                 ))}
-                <Pagination currentPage={currentPage} totalPages={totalHistoryPages} onPageChange={setCurrentPage} />
+                {totalHistoryPages > 1 && (
+                  <Pagination currentPage={currentPage} totalPages={totalHistoryPages} onPageChange={setCurrentPage} />
+                )}
               </>
             )}
 
@@ -134,7 +136,9 @@ export default function HistoriqueScreen() {
                     onPress={() => router.push(`/activities/${log.id}`)}
                   />
                 ))}
-                <Pagination currentPage={logPage} totalPages={totalLogPages} onPageChange={setLogPage} />
+                {totalLogPages > 1 && (
+                  <Pagination currentPage={logPage} totalPages={totalLogPages} onPageChange={setLogPage} />
+                )}
               </>
             )}
           </>

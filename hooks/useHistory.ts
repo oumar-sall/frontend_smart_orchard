@@ -112,11 +112,17 @@ export function useHistory() {
 
   // Derived pagination
   const paginatedHistory = filteredHistoryData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const totalHistoryPages = Math.ceil(filteredHistoryData.length / ITEMS_PER_PAGE) || 1;
+  const totalHistoryPages = Math.ceil(filteredHistoryData.length / ITEMS_PER_PAGE);
+
+  // For logs, totalLogPages is already calculated by the backend and returned in response.data.totalPages
+  // but if we are filtering by date locally, we need to recalculate it
+  const finalTotalLogPages = selectedDate
+    ? Math.ceil(filteredActivityLogs.length / ITEMS_PER_PAGE)
+    : totalLogPages;
 
   return {
     historyData: paginatedHistory, totalHistoryPages, currentPage, setCurrentPage,
-    activityLogs: filteredActivityLogs, totalLogPages, logPage, setLogPage,
+    activityLogs: filteredActivityLogs, totalLogPages: finalTotalLogPages, logPage, setLogPage,
     loading, averages, selectedPeriod, setSelectedPeriod,
     viewMode, setViewMode, humChartData, tempChartData,
     selectedDate, setSelectedDate
